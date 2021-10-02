@@ -18,7 +18,7 @@ func (resp *PistonResponse) GetOutput() string {
 Utility method to pass file paths instead of actual code in the string.
 Providing a slice of paths will send all the files.
 */
-func Files(paths []string) (*[]Code, error) {
+func Files(paths []string) ([]Code, error) {
 	var files []Code
 
 	for _, path := range paths {
@@ -49,7 +49,7 @@ func Files(paths []string) (*[]Code, error) {
 		files = append(files, file)
 	}
 
-	return &files, nil
+	return files, nil
 }
 
 func isPresent(slice []string, val string) bool {

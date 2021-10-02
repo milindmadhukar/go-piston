@@ -84,7 +84,7 @@ compile_memory_limit (optional) The maximum amount of memory the compile stage i
 
 run_memory_limit (optional) The maximum amount of memory the run stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
 */
-func (client *Client) Execute(language string, version string, files *[]Code, optionalParams OptionalParams) (*PistonResponse, error) {
+func (client *Client) Execute(language string, version string, files []Code, optionalParams *OptionalParams) (*PistonResponse, error) {
 	reqBody := RequestBody{}
 
 	reqBody.Language = language
@@ -100,30 +100,33 @@ func (client *Client) Execute(language string, version string, files *[]Code, op
 	}
 
 	reqBody.Version = version
-	reqBody.Files = *files
+	reqBody.Files = files
 
-	if stdin := optionalParams.Stdin; stdin != "" {
-		reqBody.Stdin = stdin
-	}
+	if optionalParams != nil {
 
-	if args := optionalParams.Args; args != nil {
-		reqBody.Args = args
-	}
+		if stdin := optionalParams.Stdin; stdin != "" {
+			reqBody.Stdin = stdin
+		}
 
-	if compileTimeout := optionalParams.CompileTimeout; compileTimeout.Milliseconds() != 0 {
-		reqBody.CompileTimeout = int(compileTimeout.Milliseconds())
-	}
+		if args := optionalParams.Args; args != nil {
+			reqBody.Args = args
+		}
 
-	if runTimeout := optionalParams.RunTimeout; runTimeout.Microseconds() != 0 {
-		reqBody.RunTimeout = int(runTimeout.Milliseconds())
-	}
+		if compileTimeout := optionalParams.CompileTimeout; compileTimeout.Milliseconds() != 0 {
+			reqBody.CompileTimeout = int(compileTimeout.Milliseconds())
+		}
 
-	if compileMemoryLimit := optionalParams.CompileMemoryLimit; compileMemoryLimit != 0 {
-		reqBody.CompileMemoryLimit = compileMemoryLimit
-	}
+		if runTimeout := optionalParams.RunTimeout; runTimeout.Microseconds() != 0 {
+			reqBody.RunTimeout = int(runTimeout.Milliseconds())
+		}
 
-	if runMemoryLimit := optionalParams.RunMemoryLimit; runMemoryLimit != 0 {
-		reqBody.RunMemoryLimit = runMemoryLimit
+		if compileMemoryLimit := optionalParams.CompileMemoryLimit; compileMemoryLimit != 0 {
+			reqBody.CompileMemoryLimit = compileMemoryLimit
+		}
+
+		if runMemoryLimit := optionalParams.RunMemoryLimit; runMemoryLimit != 0 {
+			reqBody.RunMemoryLimit = runMemoryLimit
+		}
 	}
 
 	bytesBody, err := json.Marshal(reqBody)
