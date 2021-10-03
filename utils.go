@@ -1,7 +1,9 @@
 package gopiston
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -82,7 +84,8 @@ func (client *Client) GetLatestVersion(language string) (string, error) {
 
 }
 
-func handleStatusCode(code int, responseBody string) error {
+func handleStatusCode(code int, respBody string) error {
+
 	var err error
 
 	if code < 300 && code >= 200 {
@@ -97,10 +100,49 @@ func handleStatusCode(code int, responseBody string) error {
 	case http.StatusNotFound:
 		err = errors.New("Invalid language or version")
 	case http.StatusBadRequest:
-		err = errors.New("Invalid Request. " + responseBody)
+		err = errors.New("Invalid Request. " + respBody)
 	default:
-		err = errors.New("Unexpected Error. " + responseBody)
+		err = errors.New("Unexpected Error. " + respBody)
 	}
 
 	return err
+}
+
+func (client *Client) handleRequest(method string, url string, body *bytes.Reader) (*http.Response, error) {
+	if body == nil {
+		body = &bytes.Reader{}
+	}
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if apiKey := client.apiKey; apiKey != "" {
+		req.Header.Add("Authorization", apiKey)
+	}
+
+	resp, err := client.httpClient.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Body.Close()
+
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(respBody))
+
+	err = handleStatusCode(resp.StatusCode, string(respBody))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+
 }
