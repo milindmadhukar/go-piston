@@ -54,6 +54,7 @@ func Files(paths []string) ([]Code, error) {
 	return files, nil
 }
 
+// Returns a boolean value checking if a string is found in the slice or not.
 func isPresent(slice []string, val string) bool {
 	for _, item := range slice {
 		if item == val {
@@ -84,6 +85,7 @@ func (client *Client) GetLatestVersion(language string) (string, error) {
 
 }
 
+// Handles the various status codes from the Piston API.
 func handleStatusCode(code int, respBody string) error {
 
 	var err error
@@ -108,6 +110,7 @@ func handleStatusCode(code int, respBody string) error {
 	return err
 }
 
+// Handles sending the request to the Piston API and returing a response.
 func (client *Client) handleRequest(method string, url string, body *bytes.Reader) (*http.Response, error) {
 	if body == nil {
 		body = &bytes.Reader{}
