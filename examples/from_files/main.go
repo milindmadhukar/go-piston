@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := piston.New("", http.DefaultClient)
+	client := piston.GetDefaultClient(http.DefaultClient)
 	paths := []string{"main.py", "test.py"}
 	files, err := piston.Files(paths)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := piston.New("", http.DefaultClient)
+	client := piston.GetDefaultClient(http.DefaultClient)
 
 	runtimes, err := client.GetRuntimes()
 

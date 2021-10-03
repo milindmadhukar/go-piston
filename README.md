@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-	client := piston.New("", http.DefaultClient)
+	client := piston.GetDefaultClient(http.DefaultClient)
 	output, err := client.Execute("python", "", // Passing language. Since no version is specified, it uses the latest supported version.
 		[]piston.Code{{Content: "inp = input()\nprint(inp[::-1])"}}, // Passing Code.
 		&piston.OptionalParams{Stdin: "hello world"})                  // Passing input as "hello world".

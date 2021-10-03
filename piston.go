@@ -7,12 +7,23 @@ import (
 )
 
 /*
-Creates a client object and returns it for access to the methods. The API works without an API key, without an API key the rate limit is 5 seconds.
+Creates a default client object and returns it for access to the methods.
 */
-func New(apiKey string, httpClient *http.Client) *Client {
+func GetDefaultClient(httpClient *http.Client) *Client {
 	return &Client{
 		httpClient: httpClient,
 		baseUrl:    "https://emkc.org/api/v2/piston/",
+		apiKey:     "",
+	}
+}
+
+/*
+Creates a Client object which allows the use of custom url and api key.
+*/
+func New(apiKey string, httpClient *http.Client, baseUrl string) *Client {
+	return &Client{
+		httpClient: httpClient,
+		baseUrl:    baseUrl,
 		apiKey:     apiKey,
 	}
 }

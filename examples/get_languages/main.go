@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := piston.New("", http.DefaultClient)
+	client := piston.GetDefaultClient(http.DefaultClient)
 	languages := client.GetLanguages()
 
 	log.Println("Supported Languages by Piston are: ", *languages)

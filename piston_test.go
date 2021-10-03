@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var client = New("", http.DefaultClient)
+var client = GetDefaultClient(http.DefaultClient)
 
 func assert(expected, got interface{}, t *testing.T) {
 	if expected != got {

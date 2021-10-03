@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := piston.New("", http.DefaultClient)
+	client := piston.GetDefaultClient(http.DefaultClient)
 	lang := "python"
 
 	latestVersion, err := client.GetLatestVersion(lang)

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := piston.New("", http.DefaultClient)
+	client := piston.GetDefaultClient(http.DefaultClient)
 
 	output, err := client.Execute("python", "",
 		[]piston.Code{

@@ -99,10 +99,10 @@ func handleStatusCode(code int, respBody string) error {
 		err = errors.New("You have been ratelimited.Try again later")
 	case http.StatusInternalServerError:
 		err = errors.New("Server failed to respond. Try again later")
-	case http.StatusNotFound:
-		err = errors.New("Invalid language or version")
 	case http.StatusBadRequest:
-		err = errors.New("Invalid Request. " + respBody)
+		err = errors.New("Invalid Request. The language or version may be incorrect.")
+	case http.StatusNotFound:
+		err = errors.New("Not found." + respBody)
 	default:
 		err = errors.New("Unexpected Error. " + respBody)
 	}
