@@ -64,9 +64,9 @@ optionalParams.Stdin (optional) The text to pass as stdin to the program. Must b
 
 optionalParams.Args (optional) The arguments to pass to the program. Must be an array or left out. Defaults to [].
 
-optionalParams.CompileTimeout (optional) The maximum time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration()" object. Defaults to 10000 (10 seconds).
+optionalParams.CompileTimeout (optional) The maximum time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 10 seconds.
 
-optionalParams.RunTimeout (optional) The maximum time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration()" object. Defaults to 3000 (3 seconds).
+optionalParams.RunTimeout (optional) The maximum time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 3 seconds.
 
 optionalParams.CompileMemoryLimit (optional) The maximum amount of memory the compile stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
 
