@@ -2,18 +2,17 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	piston "github.com/milindmadhukar/go-piston"
 )
 
 func main() {
-	client := piston.GetDefaultClient(http.DefaultClient)
+	client := piston.CreateDefaultClient()
 
 	output, err := client.Execute("python", "",
 		[]piston.Code{
 			{Content: "print('Hello World')"},
-		}, nil)
+		})
 
 	if err != nil {
 		log.Fatal(err)

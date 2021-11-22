@@ -2,13 +2,12 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	piston "github.com/milindmadhukar/go-piston"
 )
 
 func main() {
-	client := piston.GetDefaultClient(http.DefaultClient)
+	client := piston.CreateDefaultClient()
 	lang := "python"
 
 	latestVersion, err := client.GetLatestVersion(lang)

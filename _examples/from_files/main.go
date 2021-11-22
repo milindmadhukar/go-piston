@@ -2,20 +2,18 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	piston "github.com/milindmadhukar/go-piston"
 )
 
 func main() {
-	client := piston.GetDefaultClient(http.DefaultClient)
-	paths := []string{"main.py", "test.py"}
-	files, err := piston.Files(paths)
+	client := piston.CreateDefaultClient()
+	files, err := piston.Files("main.py", "test.py")
 	if err != nil {
 		log.Fatal(err)
 	}
 	output, err := client.Execute("python", "",
-		files, nil)
+		files)
 
 	log.Println(output.GetOutput())
 }

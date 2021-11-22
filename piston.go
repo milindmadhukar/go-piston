@@ -9,9 +9,9 @@ import (
 /*
 Creates a default client object and returns it for access to the methods.
 */
-func GetDefaultClient(httpClient *http.Client) *Client {
+func CreateDefaultClient() *Client {
 	return &Client{
-		httpClient: httpClient,
+		httpClient: http.DefaultClient,
 		baseUrl:    "https://emkc.org/api/v2/piston/",
 		apiKey:     "",
 	}
@@ -71,19 +71,19 @@ version (required) The version of the language to use for execution, must be a s
 files (required) A Slice of files containing code or other data that should be used for execution. The first file in this array is considered the main file. The name of the files is optional.
 Files can be added using path with the "Files()" method. To provide Code directly, provide a slice of "Code" struct.
 
-optionalParams.Stdin (optional) The text to pass as stdin to the program. Must be a string or left out. Defaults to blank string.
+Stdin (optional) The text to pass as stdin to the program. Must be a string or left out. Defaults to blank string.
 
-optionalParams.Args (optional) The arguments to pass to the program. Must be an array or left out. Defaults to [].
+Args (optional) The arguments to pass to the program. Must be an array or left out. Defaults to [].
 
-optionalParams.CompileTimeout (optional) The maximum time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 10 seconds.
+CompileTimeout (optional) The maximum time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 10 seconds.
 
-optionalParams.RunTimeout (optional) The maximum time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 3 seconds.
+RunTimeout (optional) The maximum time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 3 seconds.
 
-optionalParams.CompileMemoryLimit (optional) The maximum amount of memory the compile stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
+CompileMemoryLimit (optional) The maximum amount of memory the compile stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
 
-optionalParams.RunMemoryLimit (optional) The maximum amount of memory the run stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
+RunMemoryLimit (optional) The maximum amount of memory the run stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
 */
-func (client *Client) Execute(language string, version string, files []Code, optionalParams *OptionalParams) (*PistonResponse, error) {
+func (client *Client) Execute(language string, version string, code []Code, params ...Param) (*PistonResponse, error) {
 	// Initializing the request body.
 	reqBody := RequestBody{}
 
@@ -102,35 +102,9 @@ func (client *Client) Execute(language string, version string, files []Code, opt
 	}
 
 	reqBody.Version = version
-	reqBody.Files = files
+	reqBody.Files = code
 
-	// Handling Optional parameters for the request body.
-	if optionalParams != nil {
-
-		if stdin := optionalParams.Stdin; stdin != "" {
-			reqBody.Stdin = stdin
-		}
-
-		if args := optionalParams.Args; args != nil {
-			reqBody.Args = args
-		}
-
-		if compileTimeout := optionalParams.CompileTimeout; compileTimeout.Milliseconds() != 0 {
-			reqBody.CompileTimeout = int(compileTimeout.Milliseconds())
-		}
-
-		if runTimeout := optionalParams.RunTimeout; runTimeout.Microseconds() != 0 {
-			reqBody.RunTimeout = int(runTimeout.Milliseconds())
-		}
-
-		if compileMemoryLimit := optionalParams.CompileMemoryLimit; compileMemoryLimit != 0 {
-			reqBody.CompileMemoryLimit = compileMemoryLimit
-		}
-
-		if runMemoryLimit := optionalParams.RunMemoryLimit; runMemoryLimit != 0 {
-			reqBody.RunMemoryLimit = runMemoryLimit
-		}
-	}
+	reqBody = *processParams(&reqBody, params...)
 
 	// Getting a json bytes.
 	bytesBody, err := json.Marshal(reqBody)

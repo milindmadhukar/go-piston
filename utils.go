@@ -9,6 +9,17 @@ import (
 	"os"
 )
 
+func processParams(body *RequestBody, params ...Param) *RequestBody {
+	p := Params{
+		requestBody: body,
+	}
+	for _, param := range params {
+		param(&p)
+	}
+
+	return body
+}
+
 /*
 Returns the output of the given code.
 */
@@ -20,7 +31,7 @@ func (resp *PistonResponse) GetOutput() string {
 Utility method to pass file paths instead of actual code in the string.
 Providing a slice of paths will send all the files.
 */
-func Files(paths []string) ([]Code, error) {
+func Files(paths ...string) ([]Code, error) {
 	var files []Code
 
 	for _, path := range paths {
@@ -112,6 +123,7 @@ func handleStatusCode(code int, respBody string) error {
 
 // Handles sending the request to the Piston API and returing a response.
 func (client *Client) handleRequest(method string, url string, body *bytes.Reader) (*http.Response, error) {
+	// HACK: Why is this needed?
 	if body == nil {
 		body = &bytes.Reader{}
 	}

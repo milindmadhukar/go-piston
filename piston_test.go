@@ -1,12 +1,11 @@
 package gopiston
 
 import (
-	"net/http"
 	"testing"
 	"time"
 )
 
-var client = GetDefaultClient(http.DefaultClient)
+var client = CreateDefaultClient()
 
 func assert(expected, got interface{}, t *testing.T) {
 	if expected != got {
@@ -30,7 +29,6 @@ func TestExecutionCode(t *testing.T) {
 	output, err := client.Execute(
 		"python", "",
 		[]Code{{Content: "print([i for i in range(4)])"}},
-		nil,
 	)
 
 	if err != nil {
@@ -49,7 +47,7 @@ func TestTimeout(t *testing.T) {
 				Content: "import time\nprint('before sleep')\ntime.sleep(3)\nprint('after sleep')",
 			},
 		},
-		&OptionalParams{RunTimeout: 2 * time.Second},
+		RunTimeout(2*time.Second),
 	)
 
 	if err != nil {

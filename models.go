@@ -2,7 +2,6 @@ package gopiston
 
 import (
 	"net/http"
-	"time"
 )
 
 /*
@@ -60,16 +59,4 @@ type PistonResponse struct {
 		Code   int         `json:"code,omitempty"`
 		Signal interface{} `json:"signal,omitempty"`
 	} `json:"run"`
-}
-
-/*
-Optional Paramaters that can be passed for the execute endpoint
-*/
-type OptionalParams struct {
-	Stdin              string
-	Args               []string
-	CompileTimeout     time.Duration
-	RunTimeout         time.Duration
-	CompileMemoryLimit int
-	RunMemoryLimit     int
 }
