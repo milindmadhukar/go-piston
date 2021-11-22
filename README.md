@@ -23,6 +23,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	piston "github.com/milindmadhukar/go-piston"
 )
@@ -36,7 +37,7 @@ func main() {
 		piston.Stdin("hello world"), // Passing input as "hello world".
 	)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	fmt.Println(output.GetOutput())
 }

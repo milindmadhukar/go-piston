@@ -123,7 +123,6 @@ func handleStatusCode(code int, respBody string) error {
 
 // Handles sending the request to the Piston API and returing a response.
 func (client *Client) handleRequest(method string, url string, body *bytes.Reader) (*http.Response, error) {
-	// HACK: Why is this needed?
 	if body == nil {
 		body = &bytes.Reader{}
 	}
@@ -132,11 +131,11 @@ func (client *Client) handleRequest(method string, url string, body *bytes.Reade
 		return nil, err
 	}
 
-	if apiKey := client.apiKey; apiKey != "" {
+	if apiKey := client.ApiKey; apiKey != "" {
 		req.Header.Add("Authorization", apiKey)
 	}
 
-	resp, err := client.httpClient.Do(req)
+	resp, err := client.HttpClient.Do(req)
 
 	if err != nil {
 		return nil, err

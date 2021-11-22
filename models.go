@@ -8,9 +8,9 @@ import (
 Client struct to allow the usage of Piston API endpoints.
 */
 type Client struct {
-	httpClient *http.Client
-	baseUrl    string
-	apiKey     string
+	HttpClient *http.Client
+	BaseURL    string
+	ApiKey     string
 }
 
 /*

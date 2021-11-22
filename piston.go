@@ -11,9 +11,9 @@ Creates a default client object and returns it for access to the methods.
 */
 func CreateDefaultClient() *Client {
 	return &Client{
-		httpClient: http.DefaultClient,
-		baseUrl:    "https://emkc.org/api/v2/piston/",
-		apiKey:     "",
+		HttpClient: http.DefaultClient,
+		BaseURL:    "https://emkc.org/api/v2/piston/",
+		ApiKey:     "",
 	}
 }
 
@@ -22,9 +22,9 @@ Creates a Client object which allows the use of custom url and api key.
 */
 func New(apiKey string, httpClient *http.Client, baseUrl string) *Client {
 	return &Client{
-		httpClient: httpClient,
-		baseUrl:    baseUrl,
-		apiKey:     apiKey,
+		HttpClient: httpClient,
+		BaseURL:    baseUrl,
+		ApiKey:     apiKey,
 	}
 }
 
@@ -33,7 +33,7 @@ This endpoint will return the supported languages along with the current version
 To execute code for a particular language using the Execute() function, either the name or one of the aliases must be provided, along with the version. Multiple versions of the same language may be present at the same time, and may be selected when running a job.
 */
 func (client *Client) GetRuntimes() (*Runtimes, error) {
-	resp, err := client.handleRequest("GET", client.baseUrl+"runtimes", nil)
+	resp, err := client.handleRequest("GET", client.BaseURL+"runtimes", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (client *Client) Execute(language string, version string, code []Code, para
 	}
 
 	// Sending the POST request to the Piston API.
-	resp, err := client.handleRequest("POST", client.baseUrl+"execute", body)
+	resp, err := client.handleRequest("POST", client.BaseURL+"execute", body)
 	if err != nil {
 		return nil, err
 	}
