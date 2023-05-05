@@ -55,10 +55,6 @@ func Files(paths ...string) ([]Code, error) {
 
 		file.Content = string(content)
 
-		if err != nil {
-			return nil, err
-		}
-
 		files = append(files, file)
 	}
 

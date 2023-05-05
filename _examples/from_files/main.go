@@ -12,8 +12,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	output, err := client.Execute("python", "",
+	response, err := client.Execute("python", "",
 		files)
 
-	log.Println(output.GetOutput())
+	log.Println(response.GetOutput())
 }

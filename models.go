@@ -53,10 +53,10 @@ type PistonResponse struct {
 	Language string `json:"language"`
 	Version  string `json:"version"`
 	Run      struct {
-		Stdout string      `json:"stdout,omitempty"`
-		Stderr string      `json:"stderr,omitempty"`
-		Output string      `json:"output,omitempty"`
-		Code   int         `json:"code,omitempty"`
-		Signal interface{} `json:"signal,omitempty"`
+		Stdout string `json:"stdout,omitempty"`
+		Stderr string `json:"stderr,omitempty"`
+		Output string `json:"output,omitempty"`
+		Code   int    `json:"code,omitempty"`
+		Signal string `json:"signal,omitempty"`
 	} `json:"run"`
 }

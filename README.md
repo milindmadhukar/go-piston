@@ -30,7 +30,7 @@ import (
 
 func main() {
 	client := piston.CreateDefaultClient()
-	output, err := client.Execute("python", "", // Passing language. Since no version is specified, it uses the latest supported version.
+	execution, err := client.Execute("python", "", // Passing language. Since no version is specified, it uses the latest supported version.
 		[]piston.Code{
 			{Content: "inp = input()\nprint(inp[::-1])"},
 		}, // Passing Code.
@@ -39,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(output.GetOutput())
+	fmt.Println(execution.GetOutput())
 }
 ```
 
