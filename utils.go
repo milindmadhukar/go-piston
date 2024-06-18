@@ -23,7 +23,7 @@ func processParams(body *RequestBody, params ...Param) *RequestBody {
 /*
 Returns the output of the given code.
 */
-func (resp *PistonResponse) GetOutput() string {
+func (resp *PistonExecution) GetOutput() string {
 	return resp.Run.Output
 }
 
@@ -126,6 +126,8 @@ func (client *Client) handleRequest(method string, url string, body *bytes.Reade
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", "application/json")
 
 	if apiKey := client.ApiKey; apiKey != "" {
 		req.Header.Add("Authorization", apiKey)

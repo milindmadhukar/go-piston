@@ -26,7 +26,7 @@ func TestRuntimes(t *testing.T) {
 }
 
 func TestExecutionCode(t *testing.T) {
-	response, err := client.Execute(
+	execution, err := client.Execute(
 		"python", "",
 		[]Code{{Content: "print([i for i in range(4)])"}},
 	)
@@ -35,7 +35,7 @@ func TestExecutionCode(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	assert(response.GetOutput(), "[0, 1, 2, 3]\n", t)
+	assert(execution.GetOutput(), "[0, 1, 2, 3]\n", t)
 }
 
 func TestTimeout(t *testing.T) {

@@ -49,7 +49,7 @@ type RequestBody struct {
 /*
 Response Received from the Piston API.
 */
-type PistonResponse struct {
+type PistonExecution struct {
 	Language string `json:"language"`
 	Version  string `json:"version"`
 	Run      struct {

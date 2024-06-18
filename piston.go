@@ -83,7 +83,7 @@ CompileMemoryLimit (optional) The maximum amount of memory the compile stage is 
 
 RunMemoryLimit (optional) The maximum amount of memory the run stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
 */
-func (client *Client) Execute(language string, version string, code []Code, params ...Param) (*PistonResponse, error) {
+func (client *Client) Execute(language string, version string, code []Code, params ...Param) (*PistonExecution, error) {
 	// Initializing the request body.
 	reqBody := RequestBody{}
 
@@ -92,7 +92,6 @@ func (client *Client) Execute(language string, version string, code []Code, para
 
 	// Checking if no version is passed, if true, find the latest version.
 	if version == "" {
-
 		langVer, err := client.GetLatestVersion(language)
 		if err != nil {
 			return nil, err
@@ -125,14 +124,13 @@ func (client *Client) Execute(language string, version string, code []Code, para
 		return nil, err
 	}
 
-	output := &PistonResponse{}
+	execution := &PistonExecution{}
 
-	err = json.NewDecoder(resp.Body).Decode(output)
+	err = json.NewDecoder(resp.Body).Decode(execution)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return output, nil
-
+	return execution, nil
 }
