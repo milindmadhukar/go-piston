@@ -51,6 +51,5 @@ dlrow olleh
 
 ## 🧿 Extras
 
-If you face any difficulties contact me [here.](https://milindm.me/contact/)
-
+If you face any difficulties email me at hey(at)milind(dot)lol
 Thats it, have fun ✚✖
