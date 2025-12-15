@@ -1,6 +1,7 @@
 package gopiston
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -14,7 +15,7 @@ func assert(expected, got interface{}, t *testing.T) {
 }
 
 func TestRuntimes(t *testing.T) {
-	runtimes, err := client.GetRuntimes()
+	runtimes, err := client.GetRuntimes(context.Background())
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -27,10 +28,9 @@ func TestRuntimes(t *testing.T) {
 
 func TestExecutionCode(t *testing.T) {
 	execution, err := client.Execute(
-		"python", "",
+		context.Background(), "python", "",
 		[]Code{{Content: "print([i for i in range(4)])"}},
 	)
-
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -40,7 +40,7 @@ func TestExecutionCode(t *testing.T) {
 
 func TestTimeout(t *testing.T) {
 	response, err := client.Execute(
-		"python", "",
+		context.Background(), "python", "",
 		[]Code{
 			{
 				Name:    "main.py",
@@ -49,7 +49,6 @@ func TestTimeout(t *testing.T) {
 		},
 		RunTimeout(2*time.Second),
 	)
-
 	if err != nil {
 		t.Errorf(err.Error())
 	}
