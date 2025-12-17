@@ -2,6 +2,7 @@ package gopiston
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -48,7 +49,6 @@ func Files(paths ...string) ([]Code, error) {
 		}
 
 		content, err := ioutil.ReadAll(fileobj)
-
 		if err != nil {
 			return nil, err
 		}
@@ -74,10 +74,8 @@ func isPresent(slice []string, val string) bool {
 /*
 Returns the latest version of the language supported by the Piston API.
 */
-func (client *Client) GetLatestVersion(language string) (string, error) {
-
-	runtimes, err := client.GetRuntimes()
-
+func (client *Client) GetLatestVersion(ctx context.Context, language string) (string, error) {
+	runtimes, err := client.GetRuntimes(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -89,12 +87,10 @@ func (client *Client) GetLatestVersion(language string) (string, error) {
 	}
 
 	return "", errors.New("Could not find a version for the language " + language)
-
 }
 
 // Handles the various status codes from the Piston API.
 func handleStatusCode(code int, respBody string) error {
-
 	var err error
 
 	if code < 300 && code >= 200 {
@@ -117,12 +113,12 @@ func handleStatusCode(code int, respBody string) error {
 	return err
 }
 
-// Handles sending the request to the Piston API and returing a response.
-func (client *Client) handleRequest(method string, url string, body *bytes.Reader) (*http.Response, error) {
+// Handles sending the request to the Piston API and returning a response.
+func (client *Client) handleRequest(ctx context.Context, method string, url string, body *bytes.Reader) (*http.Response, error) {
 	if body == nil {
 		body = &bytes.Reader{}
 	}
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +130,11 @@ func (client *Client) handleRequest(method string, url string, body *bytes.Reade
 	}
 
 	resp, err := client.HttpClient.Do(req)
-
 	if err != nil {
 		return nil, err
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return nil, err
 	}
@@ -150,11 +144,9 @@ func (client *Client) handleRequest(method string, url string, body *bytes.Reade
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(respBody))
 
 	err = handleStatusCode(resp.StatusCode, string(respBody))
-
 	if err != nil {
 		return nil, err
 	}
 
 	return resp, nil
-
 }

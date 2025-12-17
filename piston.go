@@ -2,19 +2,21 @@ package gopiston
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
+)
+
+var (
+	defaultBaseURL = "https://emkc.org/api/v2/piston/"
+	defaultAPIKey  = ""
 )
 
 /*
 Creates a default client object and returns it for access to the methods.
 */
 func CreateDefaultClient() *Client {
-	return &Client{
-		HttpClient: http.DefaultClient,
-		BaseURL:    "https://emkc.org/api/v2/piston/",
-		ApiKey:     "",
-	}
+	return New(defaultAPIKey, http.DefaultClient, defaultBaseURL)
 }
 
 /*
@@ -32,15 +34,14 @@ func New(apiKey string, httpClient *http.Client, baseUrl string) *Client {
 This endpoint will return the supported languages along with the current version and aliases.
 To execute code for a particular language using the Execute() function, either the name or one of the aliases must be provided, along with the version. Multiple versions of the same language may be present at the same time, and may be selected when running a job.
 */
-func (client *Client) GetRuntimes() (*Runtimes, error) {
-	resp, err := client.handleRequest("GET", client.BaseURL+"runtimes", nil)
+func (client *Client) GetRuntimes(ctx context.Context) (*Runtimes, error) {
+	resp, err := client.handleRequest(ctx, http.MethodGet, client.BaseURL+"runtimes", nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var runtimes *Runtimes
 	err = json.NewDecoder(resp.Body).Decode(&runtimes)
-
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +52,10 @@ func (client *Client) GetRuntimes() (*Runtimes, error) {
 /*
 Returns a slice of all the supported languages by the Piston API.
 */
-func (client *Client) GetLanguages() *[]string {
+func (client *Client) GetLanguages(ctx context.Context) *[]string {
 	var languages []string
 
-	runtimes, _ := client.GetRuntimes()
+	runtimes, _ := client.GetRuntimes(ctx)
 	for _, runtime := range *runtimes {
 		languages = append(languages, runtime.Language)
 	}
@@ -83,7 +84,7 @@ CompileMemoryLimit (optional) The maximum amount of memory the compile stage is 
 
 RunMemoryLimit (optional) The maximum amount of memory the run stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
 */
-func (client *Client) Execute(language string, version string, code []Code, params ...Param) (*PistonExecution, error) {
+func (client *Client) Execute(ctx context.Context, language string, version string, code []Code, params ...Param) (*PistonExecution, error) {
 	// Initializing the request body.
 	reqBody := RequestBody{}
 
@@ -92,7 +93,7 @@ func (client *Client) Execute(language string, version string, code []Code, para
 
 	// Checking if no version is passed, if true, find the latest version.
 	if version == "" {
-		langVer, err := client.GetLatestVersion(language)
+		langVer, err := client.GetLatestVersion(ctx, language)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +108,6 @@ func (client *Client) Execute(language string, version string, code []Code, para
 
 	// Getting a json bytes.
 	bytesBody, err := json.Marshal(reqBody)
-
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (client *Client) Execute(language string, version string, code []Code, para
 	}
 
 	// Sending the POST request to the Piston API.
-	resp, err := client.handleRequest("POST", client.BaseURL+"execute", body)
+	resp, err := client.handleRequest(ctx, http.MethodPost, client.BaseURL+"execute", body)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,6 @@ func (client *Client) Execute(language string, version string, code []Code, para
 	execution := &PistonExecution{}
 
 	err = json.NewDecoder(resp.Body).Decode(execution)
-
 	if err != nil {
 		return nil, err
 	}
