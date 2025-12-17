@@ -27,8 +27,9 @@ type Runtimes []struct {
 Struct for storing the name of the file and content.
 */
 type Code struct {
-	Name    string `json:"name,omitempty"`
-	Content string `json:"content"`
+	Name     string `json:"name,omitempty"`
+	Content  string `json:"content"`
+	Encoding string `json:"encoding,omitempty"`
 }
 
 /*
@@ -42,6 +43,8 @@ type RequestBody struct {
 	Args               []string `json:"args,omitempty"`
 	CompileTimeout     int      `json:"compile_timeout,omitempty"`
 	RunTimeout         int      `json:"run_timeout,omitempty"`
+	CompileCpuTime     int      `json:"compile_cpu_time,omitempty"`
+	RunCpuTime         int      `json:"run_cpu_time,omitempty"`
 	CompileMemoryLimit int      `json:"compile_memory_limit,omitempty"`
 	RunMemoryLimit     int      `json:"run_memory_limit,omitempty"`
 }
@@ -52,11 +55,19 @@ Response Received from the Piston API.
 type PistonExecution struct {
 	Language string `json:"language"`
 	Version  string `json:"version"`
-	Run      struct {
-		Stdout string `json:"stdout,omitempty"`
-		Stderr string `json:"stderr,omitempty"`
-		Output string `json:"output,omitempty"`
-		Code   int    `json:"code,omitempty"`
-		Signal string `json:"signal,omitempty"`
-	} `json:"run"`
+	Run      Stage  `json:"run"`
+	Compile  Stage  `json:"compile,omitempty"`
+}
+
+type Stage struct {
+	Stdout   string `json:"stdout,omitempty"`
+	Stderr   string `json:"stderr,omitempty"`
+	Output   string `json:"output,omitempty"`
+	Code     int    `json:"code,omitempty"`
+	Signal   string `json:"signal,omitempty"`
+	Message  string `json:"message,omitempty"`
+	Status   string `json:"status,omitempty"`
+	CpuTime  int    `json:"cpu_time,omitempty"`
+	WallTime int    `json:"wall_time,omitempty"`
+	Memory   int    `json:"memory,omitempty"`
 }

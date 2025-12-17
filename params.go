@@ -28,7 +28,7 @@ func Args(args []string) Param {
 func CompileTimeout(timeout time.Duration) Param {
 
 	return func(param *Params) {
-		param.requestBody.CompileTimeout = int(timeout.Seconds())
+		param.requestBody.CompileTimeout = int(timeout.Milliseconds())
 	}
 }
 
@@ -36,7 +36,7 @@ func CompileTimeout(timeout time.Duration) Param {
 func RunTimeout(timeout time.Duration) Param {
 
 	return func(param *Params) {
-		param.requestBody.RunTimeout = int(timeout.Seconds())
+		param.requestBody.RunTimeout = int(timeout.Milliseconds())
 	}
 }
 
@@ -53,5 +53,19 @@ func RunMemoryLimit(limit int) Param {
 
 	return func(param *Params) {
 		param.requestBody.RunMemoryLimit = limit
+	}
+}
+
+// CompileCpuTime (optional) The maximum CPU-time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 10 seconds.
+func CompileCpuTime(timeout time.Duration) Param {
+	return func(param *Params) {
+		param.requestBody.CompileCpuTime = int(timeout.Milliseconds())
+	}
+}
+
+// RunCpuTime (optional) The maximum CPU-time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 3 seconds.
+func RunCpuTime(timeout time.Duration) Param {
+	return func(param *Params) {
+		param.requestBody.RunCpuTime = int(timeout.Milliseconds())
 	}
 }

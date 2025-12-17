@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 )
@@ -36,19 +35,17 @@ func Files(paths ...string) ([]Code, error) {
 	var files []Code
 
 	for _, path := range paths {
-
 		fileobj, err := os.Open(path)
 		if err != nil {
 			return nil, err
 		}
 
-		defer fileobj.Close()
-
 		file := Code{
 			Name: fileobj.Name(),
 		}
 
-		content, err := ioutil.ReadAll(fileobj)
+		content, err := io.ReadAll(fileobj)
+		fileobj.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +138,7 @@ func (client *Client) handleRequest(ctx context.Context, method string, url stri
 
 	resp.Body.Close()
 
-	resp.Body = ioutil.NopCloser(bytes.NewBuffer(respBody))
+	resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
 
 	err = handleStatusCode(resp.StatusCode, string(respBody))
 	if err != nil {

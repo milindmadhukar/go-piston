@@ -54,3 +54,22 @@ func TestTimeout(t *testing.T) {
 	}
 	assert(response.Run.Signal, "SIGKILL", t)
 }
+
+func TestCompileStage(t *testing.T) {
+	// C++ usually has a compile stage
+	execution, err := client.Execute(
+		context.Background(), "c++", "",
+		[]Code{{Content: "#include <iostream>\nint main() { std::cout << \"Hello\"; return 0; }"}},
+	)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	// Verify we got some compile output or at least the stage is present (though it might be empty if successful and silent)
+	// Usually Piston returns code 0 for success.
+	if execution.Compile.Code != 0 {
+		t.Errorf("Expected compile code 0, got %d", execution.Compile.Code)
+	}
+
+	assert(execution.Run.Stdout, "Hello", t)
+}
