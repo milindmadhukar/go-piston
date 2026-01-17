@@ -60,14 +60,14 @@ type PistonExecution struct {
 }
 
 type Stage struct {
-	Stdout   string `json:"stdout,omitempty"`
-	Stderr   string `json:"stderr,omitempty"`
-	Output   string `json:"output,omitempty"`
-	Code     int    `json:"code,omitempty"`
-	Signal   string `json:"signal,omitempty"`
-	Message  string `json:"message,omitempty"`
-	Status   string `json:"status,omitempty"`
-	CpuTime  int    `json:"cpu_time,omitempty"`
-	WallTime int    `json:"wall_time,omitempty"`
-	Memory   int    `json:"memory,omitempty"`
+	Stdout   string  `json:"stdout,omitempty"`
+	Stderr   string  `json:"stderr,omitempty"`
+	Output   string  `json:"output,omitempty"`
+	Code     int     `json:"code,omitempty"`
+	Signal   string  `json:"signal,omitempty"`
+	Message  string  `json:"message,omitempty"`
+	Status   string  `json:"status,omitempty"`
+	CpuTime  float64 `json:"cpu_time,omitempty"`
+	WallTime float64 `json:"wall_time,omitempty"`
+	Memory   float64     `json:"memory,omitempty"`
 }
