@@ -16,8 +16,8 @@ import (
 // carry no path, and would otherwise be asked to create subdirectories.
 // Content that is not valid UTF-8 is base64-encoded, which allows binaries to
 // be sent to runtimes that accept them.
-func Files(paths ...string) ([]Code, error) {
-	files := make([]Code, 0, len(paths))
+func Files(paths ...string) ([]File, error) {
+	files := make([]File, 0, len(paths))
 
 	for _, path := range paths {
 		content, err := os.ReadFile(path)
@@ -25,7 +25,7 @@ func Files(paths ...string) ([]Code, error) {
 			return nil, fmt.Errorf("piston: read %s: %w", path, err)
 		}
 
-		file := Code{Name: filepath.Base(path)}
+		file := File{Name: filepath.Base(path)}
 		if utf8.Valid(content) {
 			file.Content = string(content)
 		} else {

@@ -19,7 +19,7 @@ func main() {
 	)
 
 	output, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Content: "print('Hello from a self-hosted instance')"},
 		})
 	if err != nil {

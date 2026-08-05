@@ -167,7 +167,7 @@ func TestRequestShape(t *testing.T) {
 	if _, err := c.GetRuntimes(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := c.Execute(context.Background(), "python", "3.10.0", []Code{{Content: "print(1)"}}); err != nil {
+	if _, err := c.Execute(context.Background(), "python", "3.10.0", []File{{Content: "print(1)"}}); err != nil {
 		// The stub returns `[]`, which fails to decode into a struct; the
 		// request itself is what matters here.
 		_ = err
@@ -205,7 +205,7 @@ func TestExecuteSendsLatestSelector(t *testing.T) {
 	defer server.Close()
 
 	c := NewClient(server.URL, WithHTTPClient(server.Client()))
-	if _, err := c.Execute(context.Background(), "python", "", []Code{{Content: "print(1)"}}); err != nil {
+	if _, err := c.Execute(context.Background(), "python", "", []File{{Content: "print(1)"}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -223,7 +223,7 @@ func TestCompileStageAbsentDecodesToNil(t *testing.T) {
 	defer server.Close()
 
 	c := NewClient(server.URL, WithHTTPClient(server.Client()))
-	execution, err := c.Execute(context.Background(), "python", "3.10.0", []Code{{Content: "print('hi')"}})
+	execution, err := c.Execute(context.Background(), "python", "3.10.0", []File{{Content: "print('hi')"}})
 	if err != nil {
 		t.Fatal(err)
 	}

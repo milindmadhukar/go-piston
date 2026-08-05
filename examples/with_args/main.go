@@ -12,7 +12,7 @@ func main() {
 	client := piston.NewClient("http://localhost:2000/api/v2/")
 
 	output, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Content: "import sys\nprint(sys.argv[1:])"},
 		},
 		piston.Args([]string{"foo", "bar"}), // Passing command line arguments.

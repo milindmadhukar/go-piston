@@ -4,7 +4,7 @@ Executes multiple in-memory files together — a `main.py` entrypoint that impor
 
 ```go
 output, err := client.Execute(ctx, "python", "",
-	[]piston.Code{
+	[]piston.File{
 		{Name: "main.py", Content: "from helper import shout\nprint(shout('hi'))"},
 		{Name: "helper.py", Content: "def shout(s):\n    return s.upper()"},
 	})

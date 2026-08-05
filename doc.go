@@ -23,7 +23,7 @@
 // version of the language:
 //
 //	execution, err := client.Execute(ctx, "python", "",
-//		[]gopiston.Code{{Content: "print('hello')"}},
+//		[]gopiston.File{{Content: "print('hello')"}},
 //		gopiston.Stdin("input"),
 //	)
 //	if err != nil {

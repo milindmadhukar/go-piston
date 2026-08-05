@@ -4,7 +4,7 @@ Demonstrates `RunMemoryLimit` and `CompileMemoryLimit`. The program tries to all
 
 ```go
 output, err := client.Execute(ctx, "python", "",
-	[]piston.Code{
+	[]piston.File{
 		{Content: "x = bytearray(200 * 1024 * 1024)\nprint('allocated')"},
 	},
 	piston.RunMemoryLimit(16*1024*1024),

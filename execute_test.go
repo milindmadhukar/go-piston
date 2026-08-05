@@ -11,7 +11,7 @@ func TestExecutionCode(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{{Content: "print([i for i in range(4)])"}},
+		[]File{{Content: "print([i for i in range(4)])"}},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +32,7 @@ func TestExecutionEmptyVersionUsesLatest(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{{Content: "print('hi')"}},
+		[]File{{Content: "print('hi')"}},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +46,7 @@ func TestExecutionWithArgs(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{{Content: "import sys\nprint(sys.argv[1])"}},
+		[]File{{Content: "import sys\nprint(sys.argv[1])"}},
 		Args([]string{"hello-args"}),
 	)
 	if err != nil {
@@ -63,7 +63,7 @@ func TestExecutionWithEmptyStdinDefault(t *testing.T) {
 	// already present, so even blank stdin is read back as "\n".
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{{Content: "import sys\nprint(repr(sys.stdin.read()))"}},
+		[]File{{Content: "import sys\nprint(repr(sys.stdin.read()))"}},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestExecutionInvalidLanguage(t *testing.T) {
 	// rejects the request.
 	_, err := client.Execute(
 		testContext(t), "not-a-real-language", "1.0.0",
-		[]Code{{Content: "print('hi')"}},
+		[]File{{Content: "print('hi')"}},
 	)
 	if !errors.Is(err, ErrBadRequest) {
 		t.Errorf("Expected ErrBadRequest, got %v", err)
@@ -91,7 +91,7 @@ func TestTimeout(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{
+		[]File{
 			{
 				Name:    "main.py",
 				Content: "import time\nprint('before sleep')\ntime.sleep(3)\nprint('after sleep')",
@@ -110,7 +110,7 @@ func TestRunMemoryLimit(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{
+		[]File{
 			{
 				Name:    "main.py",
 				Content: "x = bytearray(200 * 1024 * 1024)\nprint('allocated')",
@@ -131,7 +131,7 @@ func TestCompileStage(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "c++", "",
-		[]Code{{Content: "#include <iostream>\nint main() { std::cout << \"Hello\"; return 0; }"}},
+		[]File{{Content: "#include <iostream>\nint main() { std::cout << \"Hello\"; return 0; }"}},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestNoCompileStageForInterpretedLanguage(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{{Content: "print('hi')"}},
+		[]File{{Content: "print('hi')"}},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +170,7 @@ func TestExecutionMultiFile(t *testing.T) {
 
 	execution, err := client.Execute(
 		testContext(t), "python", "",
-		[]Code{
+		[]File{
 			{Name: "main.py", Content: "from helper import shout\nprint(shout('hi'))"},
 			{Name: "helper.py", Content: "def shout(s):\n    return s.upper()"},
 		},

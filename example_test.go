@@ -38,7 +38,7 @@ func ExampleClient_Execute() {
 
 	// An empty version runs the highest installed version of the language.
 	execution, err := client.Execute(context.Background(), "python", "",
-		[]gopiston.Code{
+		[]gopiston.File{
 			{Content: "print('hello')"},
 		})
 	if err != nil {
@@ -53,7 +53,7 @@ func ExampleClient_Execute_withOptions() {
 	client := gopiston.NewClient("http://localhost:2000/api/v2/")
 
 	execution, err := client.Execute(context.Background(), "python", "",
-		[]gopiston.Code{
+		[]gopiston.File{
 			{Content: "import sys\nprint(sys.stdin.read(), sys.argv[1:])"},
 		},
 		gopiston.Stdin("piped input"),
@@ -80,7 +80,7 @@ func ExampleClient_Execute_compiled() {
 	client := gopiston.NewClient("http://localhost:2000/api/v2/")
 
 	execution, err := client.Execute(context.Background(), "c++", "",
-		[]gopiston.Code{
+		[]gopiston.File{
 			{Name: "main.cpp", Content: "#include <iostream>\nint main(){std::cout<<\"hi\";}"},
 		})
 	if err != nil {
@@ -153,7 +153,7 @@ func ExampleAPIError() {
 	client := gopiston.NewClient(gopiston.OfficialAPIBaseURL)
 
 	_, err := client.Execute(context.Background(), "python", "",
-		[]gopiston.Code{{Content: "print('hello')"}})
+		[]gopiston.File{{Content: "print('hello')"}})
 	if err == nil {
 		return
 	}

@@ -20,12 +20,12 @@ const latestVersionSelector = "*"
 // installed version.
 //
 // code is the set of files making up the job; the first is the entry point.
-// Build it directly as a []Code, or read files from disk with Files.
+// Build it directly as a []File, or read files from disk with Files.
 //
 // Optional behavior is supplied through params: Stdin, Args, RunTimeout,
 // CompileTimeout, RunCpuTime, CompileCpuTime, RunMemoryLimit and
 // CompileMemoryLimit.
-func (client *Client) Execute(ctx context.Context, language string, version string, code []Code, params ...Param) (*PistonExecution, error) {
+func (client *Client) Execute(ctx context.Context, language string, version string, code []File, params ...Param) (*Execution, error) {
 	if version == "" {
 		version = latestVersionSelector
 	}
@@ -47,7 +47,7 @@ func (client *Client) Execute(ctx context.Context, language string, version stri
 		return nil, err
 	}
 
-	execution := &PistonExecution{}
+	execution := &Execution{}
 	if err := decodeJSON(respBody, execution); err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (client *Client) Execute(ctx context.Context, language string, version stri
 
 // GetOutput returns the run stage's stdout and stderr, interleaved in the
 // order the process produced them.
-func (resp *PistonExecution) GetOutput() string {
+func (resp *Execution) GetOutput() string {
 	return resp.Run.Output
 }
 

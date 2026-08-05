@@ -14,7 +14,7 @@ func main() {
 	// This program tries to allocate 200MB, but RunMemoryLimit only allows
 	// 16MB, so it is expected to fail.
 	output, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Content: "x = bytearray(200 * 1024 * 1024)\nprint('allocated')"},
 		},
 		piston.RunMemoryLimit(16*1024*1024),

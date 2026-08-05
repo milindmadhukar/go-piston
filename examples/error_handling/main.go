@@ -14,7 +14,7 @@ func main() {
 	client := piston.NewClient("http://localhost:2000/api/v2/")
 
 	execution, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Content: "print('hello')"},
 		})
 	if err != nil {

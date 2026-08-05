@@ -15,7 +15,7 @@ func main() {
 	// multiple in-memory files directly. The first file is the entrypoint;
 	// the rest are made available alongside it (e.g. as importable modules).
 	output, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Name: "main.py", Content: "from helper import shout\nprint(shout('hi'))"},
 			{Name: "helper.py", Content: "def shout(s):\n    return s.upper()"},
 		})

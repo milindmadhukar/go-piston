@@ -27,11 +27,19 @@ go get github.com/milindmadhukar/go-piston/v2
 ```
 
 > **Upgrading from v1?** The import path now carries a `/v2` suffix, and the
-> client API changed: `NewClient(baseURL, ...ClientOption)` replaces
-> `CreateDefaultClient`/`New`, the endpoint methods return slices rather than
-> pointers to slices, `GetLanguages` returns an error, and failures come back
-> as a typed `*APIError`. See [Error handling](#error-handling) below. v1 stays
-> available at the unsuffixed path.
+> client API changed. v1 stays available at the unsuffixed path.
+>
+> | v1 | v2 |
+> | --- | --- |
+> | `CreateDefaultClient()`, `New(key, http, url)` | `NewClient(baseURL, ...ClientOption)` |
+> | `Code` | `File` — matching the API's own vocabulary, so `Files()` returns `[]File` |
+> | `PistonExecution` | `Execution` |
+> | `GetRuntimes() (*Runtimes, error)` | `([]Runtime, error)` |
+> | `GetLanguages() *[]string` | `([]string, error)` — no longer swallows the error |
+> | `PistonExecution.Compile Stage` | `Execution.Compile *Stage` — nil means no compile stage |
+> | errors from `errors.New` | typed `*APIError` + sentinels, see [Error handling](#error-handling) |
+>
+> `Client` fields are now unexported; use `BaseURL()` and `IsOfficialAPI()`.
 
 ## Usage
 
@@ -84,9 +92,9 @@ func main() {
 	ctx := context.Background()
 
 	execution, err := client.Execute(ctx, "python", "", // An empty version uses the highest installed version.
-		[]piston.Code{
+		[]piston.File{
 			{Content: "inp = input()\nprint(inp[::-1])"},
-		}, // Code to execute.
+		}, // Files to execute.
 		piston.Stdin("hello world"), // Input passed to the program via stdin.
 	)
 	if err != nil {

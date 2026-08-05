@@ -4,7 +4,7 @@ Passes text to a program's stdin using `piston.Stdin(...)`.
 
 ```go
 output, err := client.Execute(ctx, "python", "",
-	[]piston.Code{
+	[]piston.File{
 		{Content: "inp = input()\nprint(inp[::-1])"},
 	},
 	piston.Stdin("hello world"),

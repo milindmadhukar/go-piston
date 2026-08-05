@@ -4,7 +4,7 @@ Demonstrates the compile/run timeout and CPU-time options together (`RunTimeout`
 
 ```go
 output, err := client.Execute(ctx, "python", "",
-	[]piston.Code{
+	[]piston.File{
 		{Content: "import time\nprint('before sleep')\ntime.sleep(3)\nprint('after sleep')"},
 	},
 	piston.RunTimeout(2*time.Second),

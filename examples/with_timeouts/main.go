@@ -15,7 +15,7 @@ func main() {
 	// This program sleeps for 3 seconds, but RunTimeout only allows 2, so it
 	// will be killed before it can print "after sleep".
 	output, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Content: "import time\nprint('before sleep')\ntime.sleep(3)\nprint('after sleep')"},
 		},
 		piston.RunTimeout(2*time.Second),

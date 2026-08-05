@@ -6,7 +6,7 @@ The simplest possible example: execute an inline snippet of Python and print its
 client := piston.NewClient("http://localhost:2000/api/v2/")
 
 output, err := client.Execute(context.Background(), "python", "",
-	[]piston.Code{
+	[]piston.File{
 		{Content: "print('Hello World')"},
 	})
 ```

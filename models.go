@@ -20,9 +20,9 @@ type Runtime struct {
 // Runtimes is a list of runtimes installed on a Piston instance.
 type Runtimes []Runtime
 
-// Code is a single file making up an execution job. The first file passed to
+// File is one file making up an execution job. The first file passed to
 // Execute is the entry point.
-type Code struct {
+type File struct {
 	// Name is the file name to write. It must not contain a path; Files sets
 	// it from the base name. When empty, Piston picks a name.
 	Name string `json:"name,omitempty"`
@@ -40,7 +40,7 @@ type Code struct {
 type RequestBody struct {
 	Language           string   `json:"language"`
 	Version            string   `json:"version"`
-	Files              []Code   `json:"files"`
+	Files              []File   `json:"files"`
 	Stdin              string   `json:"stdin,omitempty"`
 	Args               []string `json:"args,omitempty"`
 	CompileTimeout     int      `json:"compile_timeout,omitempty"`
@@ -51,8 +51,8 @@ type RequestBody struct {
 	RunMemoryLimit     int      `json:"run_memory_limit,omitempty"`
 }
 
-// PistonExecution is the result of an execution job.
-type PistonExecution struct {
+// Execution is the result of an execution job.
+type Execution struct {
 	// Language is the name — never an alias — of the runtime that ran the job.
 	Language string `json:"language"`
 

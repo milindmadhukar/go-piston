@@ -20,7 +20,7 @@ func main() {
 	)
 
 	output, err := client.Execute(context.Background(), "python", "",
-		[]piston.Code{
+		[]piston.File{
 			{Content: "print('Hello from the official API')"},
 		})
 	if err != nil {
