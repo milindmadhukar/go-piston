@@ -46,6 +46,32 @@ var (
 	ErrLanguageNotFound = errors.New("language not found")
 )
 
+// Errors ending an interactive Session. Each corresponds to a WebSocket close
+// code from the instance. Note that a session finishing normally is reported
+// as io.EOF rather than as one of these.
+var (
+	// ErrAlreadyInitialized reports that a second init was sent on one
+	// session (close code 4000). Connect sends init itself, so this indicates
+	// a client bug.
+	ErrAlreadyInitialized = errors.New("session already initialized")
+
+	// ErrInitializationTimeout reports that the instance received no init
+	// within one second of the connection opening (close code 4001).
+	ErrInitializationTimeout = errors.New("session initialization timed out")
+
+	// ErrNotInitialized reports that data or a signal was sent before the job
+	// existed (close code 4003).
+	ErrNotInitialized = errors.New("session not yet initialized")
+
+	// ErrStdinOnly reports an attempt to write to a stream other than stdin
+	// (close code 4004).
+	ErrStdinOnly = errors.New("only stdin can be written to")
+
+	// ErrInvalidSignal reports a signal the instance does not recognize
+	// (close code 4005).
+	ErrInvalidSignal = errors.New("invalid signal")
+)
+
 // APIError is returned when a Piston instance responds with a non-2xx status.
 // Piston reports failures as a JSON body of the form {"message": "..."}, which
 // is parsed into Message. Body holds the raw response so that a reply from

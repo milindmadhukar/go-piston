@@ -106,6 +106,74 @@ type Stage struct {
 	Memory float64 `json:"memory"`
 }
 
+// EventType identifies which kind of message a Session received.
+type EventType string
+
+const (
+	// EventRuntime reports the runtime chosen for the job, and is the first
+	// event of a session. Language and Version are set.
+	EventRuntime EventType = "runtime"
+
+	// EventStage reports that a stage started. Stage is set to "compile" or
+	// "run".
+	EventStage EventType = "stage"
+
+	// EventStdout carries a chunk the process wrote to standard output. Data
+	// is set.
+	EventStdout EventType = "stdout"
+
+	// EventStderr carries a chunk the process wrote to standard error. Data
+	// is set.
+	EventStderr EventType = "stderr"
+
+	// EventExit reports that a stage ended. Stage is set, along with exactly
+	// one of Code and Signal.
+	EventExit EventType = "exit"
+
+	// EventError reports a fatal error. The instance closes the connection
+	// immediately afterwards, so the following call to Next returns an error
+	// carrying this Message.
+	EventError EventType = "error"
+)
+
+// Event is a single message from an interactive Session. Which fields are set
+// depends on Type; see the EventType constants.
+//
+// EventStdout and EventStderr both correspond to the protocol's "data"
+// message, whose stream is only ever stdout or stderr, and are split here so
+// callers can switch on Type alone.
+type Event struct {
+	// Type identifies the event and determines which other fields are set.
+	Type EventType
+
+	// Language is the name of the runtime that ran the job. EventRuntime only.
+	Language string
+
+	// Version is the version of the runtime that ran the job. EventRuntime
+	// only.
+	Version string
+
+	// Stage is "compile" or "run". EventStage and EventExit only.
+	Stage string
+
+	// Data is a chunk of process output. EventStdout and EventStderr only. It
+	// is a chunk, not a line: a single write may arrive split across events,
+	// and a chunk may hold several lines.
+	Data string
+
+	// Code is the stage's exit code, or nil when a signal ended it. EventExit
+	// only. It is a pointer because exactly one of Code and Signal is
+	// meaningful, and the instance sends a null code when Signal applies.
+	Code *int
+
+	// Signal is the signal that ended the stage, or empty when it exited
+	// normally. EventExit only.
+	Signal string
+
+	// Message describes the failure. EventError only.
+	Message string
+}
+
 // Package is an installable runtime known to a Piston instance.
 type Package struct {
 	// Language is the name of the contained runtime.

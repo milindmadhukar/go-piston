@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -110,6 +111,50 @@ func ExampleFiles() {
 	}
 
 	fmt.Print(execution.GetOutput())
+}
+
+// Connect streams a job's output while it runs, and accepts input while the
+// process is still alive — neither of which Execute can do.
+func ExampleClient_Connect() {
+	client := gopiston.NewClient("http://localhost:2000/api/v2/")
+
+	session, err := client.Connect(context.Background(), "python", "",
+		[]gopiston.File{{Content: "import sys\nprint(sys.stdin.readline().strip(), flush=True)"}})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer session.Close()
+
+	ctx := context.Background()
+
+	for {
+		event, err := session.Next(ctx)
+		if errors.Is(err, io.EOF) {
+			// The job finished and the instance closed the connection.
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		switch event.Type {
+		case gopiston.EventStage:
+			// The process is running, so it can be written to now.
+			if event.Stage == "run" {
+				if err := session.SendStdin(ctx, "hello\n"); err != nil {
+					log.Fatal(err)
+				}
+			}
+		case gopiston.EventStdout:
+			// Data is a chunk, not a line.
+			fmt.Print(event.Data)
+		case gopiston.EventExit:
+			// Exactly one of Code and Signal is set.
+			if event.Signal != "" {
+				fmt.Println("killed by", event.Signal)
+			}
+		}
+	}
 }
 
 func ExampleClient_GetRuntimes() {

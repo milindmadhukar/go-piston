@@ -17,4 +17,5 @@ Each directory below is a standalone, runnable `go run main.go` program demonstr
 | [list_packages](list_packages) | List available and installed packages |
 | [self_hosted_client](self_hosted_client) | Configure a client for a self-hosted instance, including a custom `*http.Client` |
 | [official_api_client](official_api_client) | Configure a client for the official, key-gated Piston API |
+| [interactive](interactive) | Stream output and write to stdin of a live process over WebSocket |
 | [error_handling](error_handling) | Classify failures with `errors.Is` and inspect `*piston.APIError` |

@@ -35,6 +35,32 @@
 // request. Note that this is separate from the limits Piston applies to the
 // code itself, which are set with [RunTimeout] and the other [Param] options.
 //
+// # Interactive execution
+//
+// [Client.Connect] opens a WebSocket [Session] instead, which streams output
+// as the process produces it and accepts input while it is still running:
+//
+//	session, err := client.Connect(ctx, "python", "", files)
+//	if err != nil {
+//		return err
+//	}
+//	defer session.Close()
+//
+//	for {
+//		event, err := session.Next(ctx)
+//		if errors.Is(err, io.EOF) {
+//			break // the job finished
+//		}
+//		if err != nil {
+//			return err
+//		}
+//		if event.Type == gopiston.EventStdout {
+//			fmt.Print(event.Data)
+//		}
+//	}
+//
+// Like package management, this is unavailable on the official API.
+//
 // # Errors
 //
 // A non-2xx response is reported as an [APIError] carrying the status code and

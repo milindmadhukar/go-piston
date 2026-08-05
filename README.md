@@ -123,6 +123,53 @@ if errors.As(err, &apiErr) {
 
 The full set is `ErrBadRequest`, `ErrUnauthorized`, `ErrAPIKeyRequired`, `ErrNotFound`, `ErrRateLimited`, `ErrServer`, `ErrLanguageNotFound` and `ErrUnsupportedByOfficialAPI`. `ErrAPIKeyRequired` implies `ErrUnauthorized`, so check it first; it is derived from the client's own configuration rather than the server's wording.
 
+## Interactive execution
+
+`Execute` sends all input up front and returns everything at once when the job ends. `Connect` instead opens a WebSocket session against the instance's `/connect` endpoint, streaming output as it is produced and accepting input while the process is still running:
+
+```go
+session, err := client.Connect(ctx, "python", "",
+	[]piston.File{{Name: "main.py", Content: source}})
+if err != nil {
+	log.Fatal(err)
+}
+defer session.Close()
+
+for {
+	event, err := session.Next(ctx)
+	if errors.Is(err, io.EOF) {
+		break // the job finished
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch event.Type {
+	case piston.EventStage:
+		if event.Stage == "run" {
+			session.SendStdin(ctx, "hello\n")
+		}
+	case piston.EventStdout:
+		fmt.Print(event.Data)
+	case piston.EventExit:
+		// exactly one of event.Code and event.Signal is set
+	}
+}
+```
+
+The event types are `EventRuntime`, `EventStage`, `EventStdout`, `EventStderr`, `EventExit` and `EventError`. A session that completes normally ends with `io.EOF`; anything else is a real failure, including the close-code sentinels `ErrInitializationTimeout`, `ErrAlreadyInitialized`, `ErrNotInitialized`, `ErrStdinOnly` and `ErrInvalidSignal`.
+
+A session may be read from one goroutine while another writes to it, but `Next` must not be called concurrently with itself.
+
+> **Self-hosted only.** Interactive execution is not available on the official Piston API; a client targeting it fails with `ErrUnsupportedByOfficialAPI` without connecting.
+
+Two practical notes:
+
+- `Event.Data` is a **chunk, not a line** — one write may arrive split across events, and one event may carry several lines.
+- Most runtimes **block-buffer stdout** when it is not a terminal, so a program that never flushes delivers nothing until it exits. Flush on the other side (`print(..., flush=True)` in Python).
+
+`SendSignal` is implemented and protocol-correct, but Piston does not currently act on it: its router emits an event named `signal` while the job handler listens for one named `kill`, so the signal is validated, accepted and then dropped. Verified against a live instance — a process sent `SIGKILL` runs to completion and exits 0. It will start working once that is fixed upstream.
+
 ## Package management
 
 `GetPackages`, `InstallPackage` and `UninstallPackage` operate on a Piston instance's own runtime store, so they are only available when self-hosting. On a client targeting the official API they fail with `ErrUnsupportedByOfficialAPI` without making a request.
