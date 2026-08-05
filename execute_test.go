@@ -7,6 +7,8 @@ import (
 )
 
 func TestExecutionCode(t *testing.T) {
+	requireLanguage(t, "python")
+
 	execution, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{{Content: "print([i for i in range(4)])"}},
@@ -19,6 +21,8 @@ func TestExecutionCode(t *testing.T) {
 }
 
 func TestExecutionWithArgs(t *testing.T) {
+	requireLanguage(t, "python")
+
 	execution, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{{Content: "import sys\nprint(sys.argv[1])"}},
@@ -32,6 +36,8 @@ func TestExecutionWithArgs(t *testing.T) {
 }
 
 func TestExecutionWithEmptyStdinDefault(t *testing.T) {
+	requireLanguage(t, "python")
+
 	execution, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{{Content: "import sys\nprint(repr(sys.stdin.read()))"}},
@@ -54,6 +60,8 @@ func TestExecutionInvalidLanguage(t *testing.T) {
 }
 
 func TestTimeout(t *testing.T) {
+	requireLanguage(t, "python")
+
 	response, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{
@@ -71,6 +79,8 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestRunMemoryLimit(t *testing.T) {
+	requireLanguage(t, "python")
+
 	response, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{
@@ -90,6 +100,8 @@ func TestRunMemoryLimit(t *testing.T) {
 }
 
 func TestCompileStage(t *testing.T) {
+	requireLanguage(t, "c++")
+
 	// C++ usually has a compile stage
 	execution, err := client.Execute(
 		context.Background(), "c++", "",
@@ -109,6 +121,8 @@ func TestCompileStage(t *testing.T) {
 }
 
 func TestExecutionMultiFile(t *testing.T) {
+	requireLanguage(t, "python")
+
 	execution, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{

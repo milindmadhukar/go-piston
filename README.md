@@ -93,11 +93,20 @@ See the [examples directory](_examples) for more, including timeouts, memory lim
 
 ## Testing
 
-The test suite runs against a live Piston API and requires an API key:
+The test suite runs against a live Piston instance. By default it targets the official API and requires an API key:
 
 ```
 export PISTON_API_KEY=your-key
 go test ./...
 ```
 
-CI runs the same suite using a `PISTON_API_KEY` repository secret. Pull requests from forks won't have access to that secret, so those CI runs are expected to fail until a maintainer adds it or reruns the job with access.
+To run it against a self-hosted instance instead, set `PISTON_BASE_URL`:
+
+```
+export PISTON_BASE_URL=http://localhost:2000/api/v2/
+go test ./...
+```
+
+Tests that need a specific language (e.g. Python or C++) check the target instance's installed runtimes first and skip themselves if that language isn't available, so a self-hosted instance doesn't need every language installed to run the suite.
+
+CI runs the suite against the official API using a `PISTON_API_KEY` repository secret. Pull requests from forks won't have access to that secret, so those CI runs are expected to fail until a maintainer adds it or reruns the job with access.

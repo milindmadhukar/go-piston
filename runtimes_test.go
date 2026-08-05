@@ -18,6 +18,8 @@ func TestRuntimes(t *testing.T) {
 }
 
 func TestGetLanguages(t *testing.T) {
+	requireLanguage(t, "python")
+
 	languages := client.GetLanguages(context.Background())
 	if languages == nil || len(*languages) == 0 {
 		t.Fatal("Expected a non-empty list of languages")
@@ -36,9 +38,11 @@ func TestGetLanguages(t *testing.T) {
 }
 
 func TestGetLatestVersion(t *testing.T) {
+	requireLanguage(t, "python")
+
 	version, err := client.GetLatestVersion(context.Background(), "python")
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err)
 	}
 	if version == "" {
 		t.Errorf("Expected a non-empty version string for python")
