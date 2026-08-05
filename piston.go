@@ -85,6 +85,58 @@ func (client *Client) GetLanguages(ctx context.Context) *[]string {
 }
 
 /*
+This endpoint returns every package the Piston instance knows about, and whether it is currently installed.
+*/
+func (client *Client) GetPackages(ctx context.Context) (*[]Package, error) {
+	resp, err := client.handleRequest(ctx, http.MethodGet, client.BaseURL+"packages", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var packages []Package
+	err = json.NewDecoder(resp.Body).Decode(&packages)
+	if err != nil {
+		return nil, err
+	}
+
+	return &packages, nil
+}
+
+/*
+Installs the package for the given language and version, as listed by GetPackages.
+*/
+func (client *Client) InstallPackage(ctx context.Context, language string, version string) (*PackageInstallation, error) {
+	return client.packageRequest(ctx, http.MethodPost, language, version)
+}
+
+/*
+Uninstalls the package for the given language and version, as listed by GetPackages.
+*/
+func (client *Client) UninstallPackage(ctx context.Context, language string, version string) (*PackageInstallation, error) {
+	return client.packageRequest(ctx, http.MethodDelete, language, version)
+}
+
+func (client *Client) packageRequest(ctx context.Context, method string, language string, version string) (*PackageInstallation, error) {
+	bytesBody, err := json.Marshal(packageRequestBody{Language: language, Version: version})
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.handleRequest(ctx, method, client.BaseURL+"packages", bytes.NewReader(bytesBody))
+	if err != nil {
+		return nil, err
+	}
+
+	installation := &PackageInstallation{}
+	err = json.NewDecoder(resp.Body).Decode(installation)
+	if err != nil {
+		return nil, err
+	}
+
+	return installation, nil
+}
+
+/*
 This endpoint requests execution of some arbitrary code.
 
 language (required) The language to use for execution, must be a string and must be installed.

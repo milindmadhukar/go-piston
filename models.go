@@ -69,5 +69,30 @@ type Stage struct {
 	Status   string  `json:"status,omitempty"`
 	CpuTime  float64 `json:"cpu_time,omitempty"`
 	WallTime float64 `json:"wall_time,omitempty"`
-	Memory   float64     `json:"memory,omitempty"`
+	Memory   float64 `json:"memory,omitempty"`
+}
+
+/*
+Package describes an installable runtime returned by the packages endpoint.
+*/
+type Package struct {
+	Language        string `json:"language"`
+	LanguageVersion string `json:"language_version"`
+	Installed       bool   `json:"installed"`
+}
+
+/*
+Request Body sent to install or uninstall a package.
+*/
+type packageRequestBody struct {
+	Language string `json:"language"`
+	Version  string `json:"version"`
+}
+
+/*
+Response Received from the Piston API after installing or uninstalling a package.
+*/
+type PackageInstallation struct {
+	Language string `json:"language"`
+	Version  string `json:"version"`
 }

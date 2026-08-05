@@ -1,6 +1,6 @@
 # go-piston
 
-A Go client library for the [Piston](https://github.com/engineer-man/piston) code execution engine, covering the `runtimes` and `execute` endpoints.
+A Go client library for the [Piston](https://github.com/engineer-man/piston) code execution engine, covering the `runtimes`, `execute`, and `packages` endpoints.
 
 ## Piston API access
 
@@ -108,5 +108,7 @@ go test ./...
 ```
 
 Tests that need a specific language (e.g. Python or C++) check the target instance's installed runtimes first and skip themselves if that language isn't available, so a self-hosted instance doesn't need every language installed to run the suite.
+
+Package install/uninstall tests mutate the target instance's installed packages, so they're skipped unless `PISTON_TEST_PACKAGE_MANAGEMENT=true` is set — avoid setting this against the official API or a shared instance.
 
 CI runs the suite against the official API using a `PISTON_API_KEY` repository secret. Pull requests from forks won't have access to that secret, so those CI runs are expected to fail until a maintainer adds it or reruns the job with access.
