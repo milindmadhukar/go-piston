@@ -26,20 +26,7 @@ Because of this, most users of this library should point it at a self-hosted Pis
 go get github.com/milindmadhukar/go-piston/v2
 ```
 
-> **Upgrading from v1?** The import path now carries a `/v2` suffix, and the
-> client API changed. v1 stays available at the unsuffixed path.
->
-> | v1 | v2 |
-> | --- | --- |
-> | `CreateDefaultClient()`, `New(key, http, url)` | `NewClient(baseURL, ...ClientOption)` |
-> | `Code` | `File` — matching the API's own vocabulary, so `Files()` returns `[]File` |
-> | `PistonExecution` | `Execution` |
-> | `GetRuntimes() (*Runtimes, error)` | `([]Runtime, error)` |
-> | `GetLanguages() *[]string` | `([]string, error)` — no longer swallows the error |
-> | `PistonExecution.Compile Stage` | `Execution.Compile *Stage` — nil means no compile stage |
-> | errors from `errors.New` | typed `*APIError` + sentinels, see [Error handling](#error-handling) |
->
-> `Client` fields are now unexported; use `BaseURL()` and `IsOfficialAPI()`.
+Coming from v1? See [Migrating from v1](#migrating-from-v1).
 
 ## Usage
 
@@ -167,3 +154,32 @@ Without `PISTON_BASE_URL` they target the official API, which needs `PISTON_API_
 Package install/uninstall tests mutate the target instance, so they are skipped unless `PISTON_TEST_PACKAGE_MANAGEMENT=true`. Choose the package with `PISTON_TEST_PACKAGE` (for example `bash=5.2.0`); avoid large runtimes, which can take many minutes to install.
 
 CI runs the full suite against a Piston instance started in Docker, so it passes without any secret. If a `PISTON_API_KEY` repository secret is set, a second job additionally runs the suite against the official API; without the secret that job is skipped rather than failed.
+
+## Migrating from v1
+
+v2 changes the import path and the client API. v1 remains available at the unsuffixed path, so existing code keeps working until you choose to move.
+
+Update the import to carry the `/v2` suffix:
+
+```go
+import piston "github.com/milindmadhukar/go-piston/v2"
+```
+
+Then apply the renames:
+
+| v1 | v2 |
+| --- | --- |
+| `CreateDefaultClient()`, `New(key, http, url)` | `NewClient(baseURL, ...ClientOption)` |
+| `Code` | `File` — matching the API's own vocabulary, so `Files()` returns `[]File` |
+| `PistonExecution` | `Execution` |
+| `GetRuntimes() (*Runtimes, error)` | `([]Runtime, error)` |
+| `GetLanguages() *[]string` | `([]string, error)` — no longer swallows the error |
+| `GetPackages() (*[]Package, error)` | `([]Package, error)` |
+| `PistonExecution.Compile Stage` | `Execution.Compile *Stage` — nil means no compile stage |
+| `client.BaseURL`, `client.ApiKey`, `client.HttpClient` | unexported; use `BaseURL()` and `IsOfficialAPI()` |
+| errors from `errors.New` | typed `*APIError` plus sentinels — see [Error handling](#error-handling) |
+
+Two behavioral changes have no compile error to point at them, so they are worth checking by hand:
+
+- **`Execute` with an empty version** now sends the `*` selector and lets the instance resolve it. v1 picked the first matching runtime from `/runtimes`, which was not necessarily the newest — an instance with several versions of one language could silently run the older one.
+- **`Files()` sends the base name** of each path. v1 sent the path as given, which the API rejects, since a file name must contain no path.
