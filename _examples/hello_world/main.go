@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	piston "github.com/milindmadhukar/go-piston"
+	piston "github.com/milindmadhukar/go-piston/v2"
 )
 
 func main() {

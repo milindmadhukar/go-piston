@@ -23,8 +23,15 @@ Because of this, most users of this library should point it at a self-hosted Pis
 ## Installation
 
 ```
-go get github.com/milindmadhukar/go-piston
+go get github.com/milindmadhukar/go-piston/v2
 ```
+
+> **Upgrading from v1?** The import path now carries a `/v2` suffix, and the
+> client API changed: `NewClient(baseURL, ...ClientOption)` replaces
+> `CreateDefaultClient`/`New`, the endpoint methods return slices rather than
+> pointers to slices, `GetLanguages` returns an error, and failures come back
+> as a typed `*APIError`. See [Error handling](#error-handling) below. v1 stays
+> available at the unsuffixed path.
 
 ## Usage
 
@@ -69,7 +76,7 @@ import (
 	"fmt"
 	"log"
 
-	piston "github.com/milindmadhukar/go-piston"
+	piston "github.com/milindmadhukar/go-piston/v2"
 )
 
 func main() {
