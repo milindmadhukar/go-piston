@@ -45,18 +45,33 @@ jobs:
       # way on ubuntu-latest runners, so this is a supported configuration.
       - name: Start Piston
         run: |
+          # /piston must be mounted: without it the image's entrypoint fails
+          # with "chown: cannot access '/piston'" and the API never starts.
+          mkdir -p "${{ runner.temp }}/piston-data"
           docker run -d \
             --privileged \
             -p 2000:2000 \
             --tmpfs /tmp:exec \
+            -v "${{ runner.temp }}/piston-data:/piston" \
             --name piston \
             ghcr.io/engineer-man/piston
 
       - name: Wait for Piston
         run: |
-          curl --silent --show-error --fail \
-            --retry 30 --retry-delay 2 --retry-connrefused \
-            http://localhost:2000/api/v2/runtimes
+          # A plain `curl --retry` is not enough here: while Docker's port
+          # proxy is listening but the API is not yet up, the connection is
+          # reset rather than refused, and --retry-connrefused does not cover
+          # that.
+          for _ in $(seq 1 60); do
+            if curl --silent --fail http://localhost:2000/api/v2/runtimes > /dev/null 2>&1; then
+              echo "Piston is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Piston did not become ready in time."
+          docker logs piston
+          exit 1
 
       # The instance starts with no runtimes installed, so install the one the
       # execution tests need. Tests for languages that are not installed skip
