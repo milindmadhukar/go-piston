@@ -2,68 +2,78 @@ package gopiston
 
 import "time"
 
-// Function to pass the Params struct.
+// Param is an optional setting for an execution job, passed to Execute.
 type Param func(*Params)
 
-// Struct that contains all piston parameters.
+// Params carries the optional settings applied to an execution job.
 type Params struct {
 	requestBody *RequestBody
 }
 
-// Stdin (optional) The text to pass as stdin to the program. Must be a string or left out. Defaults to blank string.
+// Stdin sets the text passed to the program's standard input. It defaults to
+// the empty string. Piston appends a trailing newline if one is not present.
 func Stdin(input string) Param {
 	return func(param *Params) {
 		param.requestBody.Stdin = input
 	}
 }
 
-// Args (optional) The arguments to pass to the program. Must be an array or left out. Defaults to [].
+// Args sets the command line arguments passed to the program. It defaults to
+// no arguments.
 func Args(args []string) Param {
 	return func(param *Params) {
 		param.requestBody.Args = args
 	}
 }
 
-// CompileTimeout (optional) The maximum time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 10 seconds.
+// CompileTimeout sets how long the compile stage may run before it is killed.
+// It defaults to the instance's configured maximum, typically 10 seconds, and
+// may not exceed it.
 func CompileTimeout(timeout time.Duration) Param {
-
 	return func(param *Params) {
 		param.requestBody.CompileTimeout = int(timeout.Milliseconds())
 	}
 }
 
-// RunTimeout (optional) The maximum time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 3 seconds.
+// RunTimeout sets how long the run stage may run before it is killed. It
+// defaults to the instance's configured maximum, typically 3 seconds, and may
+// not exceed it.
 func RunTimeout(timeout time.Duration) Param {
-
 	return func(param *Params) {
 		param.requestBody.RunTimeout = int(timeout.Milliseconds())
 	}
 }
 
-// CompileMemoryLimit (optional) The maximum amount of memory the compile stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
+// CompileMemoryLimit sets the maximum memory, in bytes, the compile stage may
+// use. It defaults to the instance's configured maximum, or to no limit when
+// none is configured.
 func CompileMemoryLimit(limit int) Param {
 	return func(param *Params) {
 		param.requestBody.CompileMemoryLimit = limit
 	}
-
 }
 
-// RunMemoryLimit (optional) The maximum amount of memory the run stage is allowed to use in bytes. Must be a number or left out. Defaults to -1 (no limit)
+// RunMemoryLimit sets the maximum memory, in bytes, the run stage may use. It
+// defaults to the instance's configured maximum, or to no limit when none is
+// configured.
 func RunMemoryLimit(limit int) Param {
-
 	return func(param *Params) {
 		param.requestBody.RunMemoryLimit = limit
 	}
 }
 
-// CompileCpuTime (optional) The maximum CPU-time allowed for the compile stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 10 seconds.
+// CompileCpuTime sets the maximum CPU time the compile stage may consume
+// before it is killed. It defaults to the instance's configured maximum,
+// typically 10 seconds, and may not exceed it.
 func CompileCpuTime(timeout time.Duration) Param {
 	return func(param *Params) {
 		param.requestBody.CompileCpuTime = int(timeout.Milliseconds())
 	}
 }
 
-// RunCpuTime (optional) The maximum CPU-time allowed for the run stage to finish before bailing out in milliseconds. Must be a "time.Duration" object. Defaults to 3 seconds.
+// RunCpuTime sets the maximum CPU time the run stage may consume before it is
+// killed. It defaults to the instance's configured maximum, typically 3
+// seconds, and may not exceed it.
 func RunCpuTime(timeout time.Duration) Param {
 	return func(param *Params) {
 		param.requestBody.RunCpuTime = int(timeout.Milliseconds())

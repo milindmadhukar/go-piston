@@ -1,9 +1,9 @@
 # get_languages
 
-Returns just the language names supported by the target Piston instance (a thin wrapper over `GetRuntimes`).
+Returns the names of the languages the target instance supports, deduplicated — an instance with several versions of one language reports it once.
 
 ```go
-languages := client.GetLanguages(context.Background())
+languages, err := client.GetLanguages(context.Background())
 ```
 
 ## Run

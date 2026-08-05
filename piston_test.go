@@ -2,25 +2,44 @@ package gopiston
 
 import (
 	"context"
-	"net/http"
 	"os"
+	"slices"
 	"testing"
+	"time"
 )
 
-// PISTON_BASE_URL lets the live-network tests target a self-hosted Piston
-// instance instead of the official API, e.g. PISTON_BASE_URL=http://localhost:2000/api/v2/.
-// It defaults to the official API, which requires PISTON_API_KEY.
-var baseURL = os.Getenv("PISTON_BASE_URL")
-
-var apiKey = os.Getenv("PISTON_API_KEY")
+// The live tests run against a real Piston instance.
+//
+//	PISTON_BASE_URL   base URL of the instance to test against. Defaults to
+//	                  the official API, which is whitelist-only, so point this
+//	                  at a self-hosted instance to exercise the full suite.
+//	PISTON_API_KEY    API key, required by the official API.
+//
+// The unit tests below and in the *_unit_test.go files need neither.
+var (
+	baseURL = os.Getenv("PISTON_BASE_URL")
+	apiKey  = os.Getenv("PISTON_API_KEY")
+)
 
 var client = newTestClient()
 
 func newTestClient() *Client {
-	if baseURL == "" {
-		return NewClient(OfficialAPIBaseURL, WithAPIKey(apiKey))
+	target := baseURL
+	if target == "" {
+		target = OfficialAPIBaseURL
 	}
-	return NewClient(baseURL, WithAPIKey(apiKey))
+	return NewClient(target, WithAPIKey(apiKey))
+}
+
+// testContext bounds every live request. A Piston instance consulting the
+// upstream package index can hang for minutes, and an unbounded context turns
+// that into an opaque ten-minute test timeout instead of a clear failure.
+func testContext(t *testing.T) context.Context {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	t.Cleanup(cancel)
+	return ctx
 }
 
 func assert(expected, got interface{}, t *testing.T) {
@@ -29,49 +48,35 @@ func assert(expected, got interface{}, t *testing.T) {
 	}
 }
 
-// requireLanguage skips the test if the target Piston instance doesn't have
-// the given language (or one of its aliases) installed, since a self-hosted
-// instance may only have a subset of runtimes available.
+// requireExecuteAccess skips the test when the target instance is known to
+// reject execution. The official API still serves /runtimes without a key but
+// rejects /execute, so without a key there is nothing to learn from running
+// these — CI covers them against a self-hosted instance instead.
+func requireExecuteAccess(t *testing.T) {
+	t.Helper()
+
+	if client.IsOfficialAPI() && apiKey == "" {
+		t.Skip("skipping: the official Piston API is whitelist-only; set PISTON_API_KEY, or PISTON_BASE_URL for a self-hosted instance")
+	}
+}
+
+// requireLanguage skips the test when the target instance has no runtime for
+// the given language, since a self-hosted instance may install only a subset.
 func requireLanguage(t *testing.T, language string) {
 	t.Helper()
 
-	runtimes, err := client.GetRuntimes(context.Background())
+	requireExecuteAccess(t)
+
+	runtimes, err := client.GetRuntimes(testContext(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, runtime := range *runtimes {
-		if runtime.Language == language || isPresent(runtime.Aliases, language) {
+	for _, runtime := range runtimes {
+		if runtime.Language == language || slices.Contains(runtime.Aliases, language) {
 			return
 		}
 	}
 
 	t.Skipf("skipping: %q is not installed on this Piston instance", language)
-}
-
-func TestNewClientDefaults(t *testing.T) {
-	c := NewClient("http://localhost:2000/api/v2/")
-
-	assert(c.BaseURL, "http://localhost:2000/api/v2/", t)
-	assert(c.ApiKey, "", t)
-	if c.HttpClient != http.DefaultClient {
-		t.Errorf("Expected HttpClient to default to http.DefaultClient")
-	}
-}
-
-func TestWithAPIKey(t *testing.T) {
-	c := NewClient(OfficialAPIBaseURL, WithAPIKey("test-key"))
-	assert(c.ApiKey, "test-key", t)
-}
-
-func TestWithHTTPClient(t *testing.T) {
-	custom := &http.Client{}
-	c := NewClient("http://localhost:2000/api/v2/", WithHTTPClient(custom))
-	if c.HttpClient != custom {
-		t.Errorf("Expected HttpClient to be the custom client passed to WithHTTPClient")
-	}
-}
-
-func TestOfficialAPIBaseURL(t *testing.T) {
-	assert(OfficialAPIBaseURL, "https://emkc.org/api/v2/piston/", t)
 }

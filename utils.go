@@ -1,149 +1,46 @@
 package gopiston
 
 import (
-	"bytes"
-	"context"
-	"errors"
-	"io"
-	"net/http"
+	"encoding/base64"
+	"fmt"
 	"os"
+	"path/filepath"
+	"unicode/utf8"
 )
 
-func processParams(body *RequestBody, params ...Param) *RequestBody {
-	p := Params{
-		requestBody: body,
-	}
-	for _, param := range params {
-		param(&p)
-	}
-
-	return body
-}
-
-/*
-Returns the output of the given code.
-*/
+// GetOutput returns the run stage's stdout and stderr, interleaved in the
+// order the process produced them.
 func (resp *PistonExecution) GetOutput() string {
 	return resp.Run.Output
 }
 
-/*
-Utility method to pass file paths instead of actual code in the string.
-Providing a slice of paths will send all the files.
-*/
+// Files reads the given paths and returns them as execution files, so callers
+// can run code from disk instead of embedding it in a string. The files are
+// returned in the order given, so the first path is the job's entry point.
+//
+// Only the base name of each path is sent: Piston requires file names to
+// carry no path, and would otherwise be asked to create subdirectories.
+// Content that is not valid UTF-8 is base64-encoded, which allows binaries to
+// be sent to runtimes that accept them.
 func Files(paths ...string) ([]Code, error) {
-	var files []Code
+	files := make([]Code, 0, len(paths))
 
 	for _, path := range paths {
-		fileobj, err := os.Open(path)
+		content, err := os.ReadFile(path)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("piston: read %s: %w", path, err)
 		}
 
-		file := Code{
-			Name: fileobj.Name(),
+		file := Code{Name: filepath.Base(path)}
+		if utf8.Valid(content) {
+			file.Content = string(content)
+		} else {
+			file.Content = base64.StdEncoding.EncodeToString(content)
+			file.Encoding = "base64"
 		}
-
-		content, err := io.ReadAll(fileobj)
-		fileobj.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		file.Content = string(content)
 
 		files = append(files, file)
 	}
 
 	return files, nil
-}
-
-// Returns a boolean value checking if a string is found in the slice or not.
-func isPresent(slice []string, val string) bool {
-	for _, item := range slice {
-		if item == val {
-			return true
-		}
-	}
-	return false
-}
-
-/*
-Returns the latest version of the language supported by the Piston API.
-*/
-func (client *Client) GetLatestVersion(ctx context.Context, language string) (string, error) {
-	runtimes, err := client.GetRuntimes(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	for _, runtime := range *runtimes {
-		if language == runtime.Language || isPresent(runtime.Aliases, language) {
-			return runtime.Version, nil
-		}
-	}
-
-	return "", errors.New("Could not find a version for the language " + language)
-}
-
-// Handles the various status codes from the Piston API.
-func handleStatusCode(code int, respBody string) error {
-	var err error
-
-	if code < 300 && code >= 200 {
-		return nil
-	}
-
-	switch code {
-	case http.StatusTooManyRequests:
-		err = errors.New("You have been ratelimited.Try again later")
-	case http.StatusInternalServerError:
-		err = errors.New("Server failed to respond. Try again later")
-	case http.StatusBadRequest:
-		err = errors.New("Invalid Request. The language or version may be incorrect.")
-	case http.StatusNotFound:
-		err = errors.New("Not found." + respBody)
-	default:
-		err = errors.New("Unexpected Error. " + respBody)
-	}
-
-	return err
-}
-
-// Handles sending the request to the Piston API and returning a response.
-func (client *Client) handleRequest(ctx context.Context, method string, url string, body *bytes.Reader) (*http.Response, error) {
-	if body == nil {
-		body = &bytes.Reader{}
-	}
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", "application/json")
-
-	if apiKey := client.ApiKey; apiKey != "" {
-		req.Header.Add("Authorization", apiKey)
-	}
-
-	resp, err := client.HttpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	resp.Body.Close()
-
-	resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
-
-	err = handleStatusCode(resp.StatusCode, string(respBody))
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }

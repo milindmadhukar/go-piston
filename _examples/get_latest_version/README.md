@@ -1,10 +1,12 @@
 # get_latest_version
 
-Resolves the latest version of a language installed on the target Piston instance, without executing any code.
+Resolves the highest installed version of a language on the target instance, comparing versions numerically rather than taking whichever the instance happens to list first.
 
 ```go
 latestVersion, err := client.GetLatestVersion(context.Background(), "python")
 ```
+
+Calling this before `Execute` is only necessary when the version itself is of interest — passing an empty version to `Execute` lets the instance resolve the latest itself, without the extra request.
 
 ## Run
 

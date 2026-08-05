@@ -34,6 +34,8 @@ go get github.com/milindmadhukar/go-piston
 client := piston.NewClient("http://localhost:2000/api/v2/")
 ```
 
+The base URL works with or without a trailing slash. `client.BaseURL()` returns the normalized form.
+
 ### Official Piston API (requires an API key)
 
 ```go
@@ -41,6 +43,8 @@ client := piston.NewClient(piston.OfficialAPIBaseURL, piston.WithAPIKey("your-ke
 ```
 
 `NewClient` also accepts `piston.WithHTTPClient` to supply a custom `*http.Client`.
+
+A client's target is fixed at construction and cannot be changed afterwards, so `client.IsOfficialAPI()` is always an accurate answer to "am I talking to the public API?".
 
 ### Context
 
@@ -52,6 +56,8 @@ defer cancel()
 
 execution, err := client.Execute(ctx, "python", "", files)
 ```
+
+This is separate from the limits Piston applies to the executed code itself, which are set with `piston.RunTimeout` and the other options.
 
 ### Example
 
@@ -70,7 +76,7 @@ func main() {
 	client := piston.NewClient("http://localhost:2000/api/v2/")
 	ctx := context.Background()
 
-	execution, err := client.Execute(ctx, "python", "", // Language and version; an empty version resolves to the latest supported version.
+	execution, err := client.Execute(ctx, "python", "", // An empty version uses the highest installed version.
 		[]piston.Code{
 			{Content: "inp = input()\nprint(inp[::-1])"},
 		}, // Code to execute.
@@ -89,26 +95,58 @@ Output:
 dlrow olleh
 ```
 
-See the [examples directory](_examples) for more, including timeouts, memory limits, multi-file execution, and configuring clients for self-hosted vs. the official API.
+See the [examples directory](_examples) for more, including timeouts, memory limits, multi-file execution, error handling, and configuring clients for self-hosted vs. the official API.
+
+## Error handling
+
+A non-2xx response is returned as an `*piston.APIError` carrying the status code and the instance's own message. Sentinel errors let you classify a failure without parsing text:
+
+```go
+switch {
+case errors.Is(err, piston.ErrAPIKeyRequired):
+	// this instance needs a key; pass piston.WithAPIKey(...)
+case errors.Is(err, piston.ErrUnauthorized):
+	// the configured key was rejected
+case errors.Is(err, piston.ErrRateLimited):
+	// back off and retry
+}
+
+var apiErr *piston.APIError
+if errors.As(err, &apiErr) {
+	log.Printf("status=%d message=%q", apiErr.StatusCode, apiErr.Message)
+}
+```
+
+The full set is `ErrBadRequest`, `ErrUnauthorized`, `ErrAPIKeyRequired`, `ErrNotFound`, `ErrRateLimited`, `ErrServer`, `ErrLanguageNotFound` and `ErrUnsupportedByOfficialAPI`. `ErrAPIKeyRequired` implies `ErrUnauthorized`, so check it first; it is derived from the client's own configuration rather than the server's wording.
+
+## Package management
+
+`GetPackages`, `InstallPackage` and `UninstallPackage` operate on a Piston instance's own runtime store, so they are only available when self-hosting. On a client targeting the official API they fail with `ErrUnsupportedByOfficialAPI` without making a request.
+
+```go
+packages, err := client.GetPackages(ctx)
+installation, err := client.InstallPackage(ctx, "python", "3.10.0")
+```
+
+Listing packages makes the instance consult the upstream package index and can be slow; installing one downloads and unpacks a runtime and can take minutes. Give both a generous context timeout.
 
 ## Testing
 
-The test suite runs against a live Piston instance. By default it targets the official API and requires an API key:
+The unit tests need no network and no configuration:
 
 ```
-export PISTON_API_KEY=your-key
 go test ./...
 ```
 
-To run it against a self-hosted instance instead, set `PISTON_BASE_URL`:
+The live tests run against a real Piston instance. Point them at a self-hosted one:
 
 ```
 export PISTON_BASE_URL=http://localhost:2000/api/v2/
 go test ./...
 ```
 
-Tests that need a specific language (e.g. Python or C++) check the target instance's installed runtimes first and skip themselves if that language isn't available, so a self-hosted instance doesn't need every language installed to run the suite.
+Without `PISTON_BASE_URL` they target the official API, which needs `PISTON_API_KEY`; execution tests skip themselves when no key is configured. Tests that need a specific language check the instance's installed runtimes first and skip if it is unavailable, so a self-hosted instance does not need every language installed.
 
-Package install/uninstall tests mutate the target instance's installed packages, so they're skipped unless `PISTON_TEST_PACKAGE_MANAGEMENT=true` is set — avoid setting this against the official API or a shared instance.
+Package install/uninstall tests mutate the target instance, so they are skipped unless `PISTON_TEST_PACKAGE_MANAGEMENT=true`. Choose the package with `PISTON_TEST_PACKAGE` (for example `bash=5.2.0`); avoid large runtimes, which can take many minutes to install.
 
-CI runs the suite against the official API using a `PISTON_API_KEY` repository secret. Pull requests from forks won't have access to that secret, so those CI runs are expected to fail until a maintainer adds it or reruns the job with access.
+CI runs the full suite against a Piston instance started in Docker, so it passes without any secret. If a `PISTON_API_KEY` repository secret is set, a second job additionally runs the suite against the official API; without the secret that job is skipped rather than failed.

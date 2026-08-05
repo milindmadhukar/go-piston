@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	// Package management is only available on a self-hosted instance.
 	client := piston.NewClient("http://localhost:2000/api/v2/")
 
 	packages, err := client.GetPackages(context.Background())
@@ -16,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, pkg := range *packages {
+	for _, pkg := range packages {
 		fmt.Printf("%s %s (installed: %v)\n", pkg.Language, pkg.LanguageVersion, pkg.Installed)
 	}
 }

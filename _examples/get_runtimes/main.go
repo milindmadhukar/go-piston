@@ -15,5 +15,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Runtimes supported by the Piston API are: ", *runtimes)
+	for _, runtime := range runtimes {
+		log.Printf("%s %s (aliases: %v)", runtime.Language, runtime.Version, runtime.Aliases)
+	}
 }

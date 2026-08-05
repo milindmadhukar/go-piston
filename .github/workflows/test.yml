@@ -6,7 +6,9 @@ on:
 
 jobs:
   test:
+    name: Test against a self-hosted Piston instance
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -14,18 +16,102 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
       - name: Build
         run: go build ./...
 
       - name: Vet
         run: go vet ./...
 
+      # The _examples directory is excluded from the module by its leading
+      # underscore, so `go build ./...` never sees it. Build each program
+      # explicitly so the examples cannot silently rot.
+      - name: Build examples
+        run: |
+          for dir in _examples/*/; do
+            echo "building $dir"
+            (cd "$dir" && go build -o /dev/null .)
+          done
+
+      # Piston needs --privileged and cgroup v2. Upstream runs its own API this
+      # way on ubuntu-latest runners, so this is a supported configuration.
+      - name: Start Piston
+        run: |
+          docker run -d \
+            --privileged \
+            -p 2000:2000 \
+            --tmpfs /tmp:exec \
+            --name piston \
+            ghcr.io/engineer-man/piston
+
+      - name: Wait for Piston
+        run: |
+          curl --silent --show-error --fail \
+            --retry 30 --retry-delay 2 --retry-connrefused \
+            http://localhost:2000/api/v2/runtimes
+
+      # The instance starts with no runtimes installed, so install the one the
+      # execution tests need. Tests for languages that are not installed skip
+      # themselves.
+      - name: Install the python runtime
+        run: |
+          curl --silent --show-error --fail \
+            -X POST http://localhost:2000/api/v2/packages \
+            -H 'Content-Type: application/json' \
+            -d '{"language":"python","version":"3.10.0"}'
+          curl --silent --show-error --fail http://localhost:2000/api/v2/runtimes
+
       - name: Test
-        # Requires a PISTON_API_KEY repository secret, since the test suite
-        # runs against the official Piston API. Pull requests from forks do
-        # not have access to repository secrets, so this step is expected
-        # to fail on those runs until a maintainer adds the secret or
-        # reruns the job with access.
         env:
-          PISTON_API_KEY: ${{ secrets.PISTON_API_KEY }}
+          PISTON_BASE_URL: http://localhost:2000/api/v2/
+          # Exercise install/uninstall too. Safe here: the instance is
+          # ephemeral, and bash is small enough to install quickly.
+          PISTON_TEST_PACKAGE_MANAGEMENT: "true"
+          # Pinned rather than bare "bash" so the test resolves the version
+          # locally instead of listing every package, which makes the instance
+          # fetch the upstream index.
+          PISTON_TEST_PACKAGE: bash=5.2.0
+        run: go test ./... -v
+
+      - name: Piston logs
+        if: always()
+        run: docker logs piston
+
+  test-official-api:
+    name: Test against the official Piston API
+    runs-on: ubuntu-latest
+    env:
+      PISTON_API_KEY: ${{ secrets.PISTON_API_KEY }}
+
+    steps:
+      # The official API is whitelist-only. Without a PISTON_API_KEY repository
+      # secret — including on pull requests from forks, which never receive
+      # secrets — every step below is skipped rather than failed, and the
+      # self-hosted job above remains the source of truth.
+      - name: Report whether an API key is configured
+        run: |
+          if [ -z "$PISTON_API_KEY" ]; then
+            echo "No PISTON_API_KEY secret set; skipping the official-API tests."
+          else
+            echo "PISTON_API_KEY is set; running the official-API tests."
+          fi
+
+      - uses: actions/checkout@v4
+        if: env.PISTON_API_KEY != ''
+
+      - uses: actions/setup-go@v5
+        if: env.PISTON_API_KEY != ''
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        if: env.PISTON_API_KEY != ''
         run: go test ./... -v

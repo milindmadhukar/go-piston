@@ -1,12 +1,16 @@
 # list_packages
 
-Lists every package the Piston instance knows about, and whether it is currently installed, via `GetPackages`.
+Lists every package the instance knows about, and whether it is currently installed.
 
 ```go
 packages, err := client.GetPackages(context.Background())
 ```
 
-`InstallPackage(ctx, language, version)` and `UninstallPackage(ctx, language, version)` manage packages the same way, taking a language/version pair from this list and returning the installed/uninstalled `language`/`version`.
+`InstallPackage(ctx, language, version)` and `UninstallPackage(ctx, language, version)` manage packages, taking a language/version pair from this list.
+
+> **Self-hosted only.** All three methods operate on an instance's own runtime store and are unavailable on the official Piston API. A client targeting it fails with `ErrUnsupportedByOfficialAPI` without making a request.
+
+Listing packages makes the instance consult the upstream package index, which can be slow — pass a context with a timeout. Installing a package downloads and unpacks a runtime and can take minutes.
 
 ## Run
 
@@ -19,6 +23,6 @@ go run main.go
 ```
 python 3.10.0 (installed: true)
 node 15.10.0 (installed: true)
-bash 5.1.0 (installed: false)
+bash 5.2.0 (installed: false)
 ...
 ```

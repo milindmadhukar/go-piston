@@ -1,18 +1,19 @@
 package gopiston
 
 import (
-	"context"
+	"errors"
+	"slices"
 	"testing"
 )
 
 func TestRuntimes(t *testing.T) {
-	runtimes, err := client.GetRuntimes(context.Background())
+	runtimes, err := client.GetRuntimes(testContext(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, runtime := range *runtimes {
+	for _, runtime := range runtimes {
 		if runtime.Language == "python" {
-			assert(runtime.Aliases[0], "py", t)
+			assert(slices.Contains(runtime.Aliases, "py"), true, t)
 		}
 	}
 }
@@ -20,38 +21,58 @@ func TestRuntimes(t *testing.T) {
 func TestGetLanguages(t *testing.T) {
 	requireLanguage(t, "python")
 
-	languages := client.GetLanguages(context.Background())
-	if languages == nil || len(*languages) == 0 {
+	languages, err := client.GetLanguages(testContext(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(languages) == 0 {
 		t.Fatal("Expected a non-empty list of languages")
 	}
 
-	found := false
-	for _, language := range *languages {
-		if language == "python" {
-			found = true
-			break
-		}
+	if !slices.Contains(languages, "python") {
+		t.Errorf("Expected %q to be in the list of supported languages", "python")
 	}
-	if !found {
-		t.Errorf("Expected \"python\" to be in the list of supported languages")
+
+	// An instance with several versions of one language must report it once.
+	seen := make(map[string]bool, len(languages))
+	for _, language := range languages {
+		if seen[language] {
+			t.Errorf("Expected language %q to appear only once", language)
+		}
+		seen[language] = true
 	}
 }
 
 func TestGetLatestVersion(t *testing.T) {
 	requireLanguage(t, "python")
 
-	version, err := client.GetLatestVersion(context.Background(), "python")
+	version, err := client.GetLatestVersion(testContext(t), "python")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if version == "" {
 		t.Errorf("Expected a non-empty version string for python")
 	}
+
+	// Whatever it returns must genuinely be the highest installed version,
+	// not merely the first one the instance happened to list.
+	runtimes, err := client.GetRuntimes(testContext(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, runtime := range runtimes {
+		if runtime.Language != "python" {
+			continue
+		}
+		if compareVersions(runtime.Version, version) > 0 {
+			t.Errorf("GetLatestVersion returned %s, but %s is installed", version, runtime.Version)
+		}
+	}
 }
 
 func TestGetLatestVersionInvalidLanguage(t *testing.T) {
-	_, err := client.GetLatestVersion(context.Background(), "not-a-real-language")
-	if err == nil {
-		t.Errorf("Expected an error for an unsupported language, got nil")
+	_, err := client.GetLatestVersion(testContext(t), "not-a-real-language")
+	if !errors.Is(err, ErrLanguageNotFound) {
+		t.Errorf("Expected ErrLanguageNotFound, got %v", err)
 	}
 }

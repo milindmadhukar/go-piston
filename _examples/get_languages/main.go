@@ -9,7 +9,11 @@ import (
 
 func main() {
 	client := piston.NewClient("http://localhost:2000/api/v2/")
-	languages := client.GetLanguages(context.Background())
 
-	log.Println("Supported Languages by Piston are: ", *languages)
+	languages, err := client.GetLanguages(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Supported Languages by Piston are: ", languages)
 }
