@@ -1,19 +1,19 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	piston "github.com/milindmadhukar/go-piston"
 )
 
 func main() {
-	client := piston.CreateDefaultClient()
+	client := piston.NewClient("http://localhost:2000/api/v2/")
 
-	output, err := client.Execute("python", "",
+	output, err := client.Execute(context.Background(), "python", "",
 		[]piston.Code{
 			{Content: "print('Hello World')"},
 		})
-
 	if err != nil {
 		log.Fatal(err)
 	}

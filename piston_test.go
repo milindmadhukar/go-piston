@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var client = CreateDefaultClient()
+var client = NewClient(OfficialAPIBaseURL)
 
 func assert(expected, got interface{}, t *testing.T) {
 	if expected != got {

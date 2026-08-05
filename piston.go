@@ -7,27 +7,46 @@ import (
 	"net/http"
 )
 
-var (
-	defaultBaseURL = "https://emkc.org/api/v2/piston/"
-	defaultAPIKey  = ""
-)
+// OfficialAPIBaseURL is the base URL of the officially hosted Piston API.
+// Access to it requires an API key granted at the maintainer's discretion;
+// see the README for details. Most users should self-host Piston instead
+// and pass their own instance's base URL to NewClient.
+const OfficialAPIBaseURL = "https://emkc.org/api/v2/piston/"
 
-/*
-Creates a default client object and returns it for access to the methods.
-*/
-func CreateDefaultClient() *Client {
-	return New(defaultAPIKey, http.DefaultClient, defaultBaseURL)
+// ClientOption configures a Client created via NewClient.
+type ClientOption func(*Client)
+
+// WithAPIKey sets the API key sent with every request, required when using
+// the official Piston API.
+func WithAPIKey(apiKey string) ClientOption {
+	return func(client *Client) {
+		client.ApiKey = apiKey
+	}
+}
+
+// WithHTTPClient overrides the *http.Client used to make requests.
+func WithHTTPClient(httpClient *http.Client) ClientOption {
+	return func(client *Client) {
+		client.HttpClient = httpClient
+	}
 }
 
 /*
-Creates a Client object which allows the use of custom url and api key.
+NewClient creates a Client for the Piston instance at baseURL, typically a
+self-hosted instance. To use the official API instead, pass
+piston.OfficialAPIBaseURL and provide an API key with WithAPIKey.
 */
-func New(apiKey string, httpClient *http.Client, baseUrl string) *Client {
-	return &Client{
-		HttpClient: httpClient,
-		BaseURL:    baseUrl,
-		ApiKey:     apiKey,
+func NewClient(baseURL string, opts ...ClientOption) *Client {
+	client := &Client{
+		HttpClient: http.DefaultClient,
+		BaseURL:    baseURL,
 	}
+
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client
 }
 
 /*
