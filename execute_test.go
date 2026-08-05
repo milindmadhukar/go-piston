@@ -38,6 +38,8 @@ func TestExecutionWithArgs(t *testing.T) {
 func TestExecutionWithEmptyStdinDefault(t *testing.T) {
 	requireLanguage(t, "python")
 
+	// Piston appends a trailing newline to stdin server-side if one isn't
+	// already present, so even blank stdin is read back as "\n".
 	execution, err := client.Execute(
 		context.Background(), "python", "",
 		[]Code{{Content: "import sys\nprint(repr(sys.stdin.read()))"}},
@@ -46,7 +48,7 @@ func TestExecutionWithEmptyStdinDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert(execution.GetOutput(), "''\n", t)
+	assert(execution.GetOutput(), "'\\n'\n", t)
 }
 
 func TestExecutionInvalidLanguage(t *testing.T) {
