@@ -74,7 +74,10 @@ Returns a slice of all the supported languages by the Piston API.
 func (client *Client) GetLanguages(ctx context.Context) *[]string {
 	var languages []string
 
-	runtimes, _ := client.GetRuntimes(ctx)
+	runtimes, err := client.GetRuntimes(ctx)
+	if err != nil {
+		return &languages
+	}
 	for _, runtime := range *runtimes {
 		languages = append(languages, runtime.Language)
 	}

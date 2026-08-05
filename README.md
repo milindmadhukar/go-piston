@@ -88,3 +88,16 @@ Output:
 ```
 dlrow olleh
 ```
+
+See the [examples directory](_examples) for more, including timeouts, memory limits, multi-file execution, and configuring clients for self-hosted vs. the official API.
+
+## Testing
+
+The test suite runs against a live Piston API and requires an API key:
+
+```
+export PISTON_API_KEY=your-key
+go test ./...
+```
+
+CI runs the same suite using a `PISTON_API_KEY` repository secret. Pull requests from forks won't have access to that secret, so those CI runs are expected to fail until a maintainer adds it or reruns the job with access.

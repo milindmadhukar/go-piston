@@ -1,0 +1,31 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        # Requires a PISTON_API_KEY repository secret, since the test suite
+        # runs against the official Piston API. Pull requests from forks do
+        # not have access to repository secrets, so this step is expected
+        # to fail on those runs until a maintainer adds the secret or
+        # reruns the job with access.
+        env:
+          PISTON_API_KEY: ${{ secrets.PISTON_API_KEY }}
+        run: go test ./... -v

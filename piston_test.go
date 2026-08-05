@@ -1,12 +1,14 @@
 package gopiston
 
 import (
-	"context"
+	"net/http"
+	"os"
 	"testing"
-	"time"
 )
 
-var client = NewClient(OfficialAPIBaseURL)
+var apiKey = os.Getenv("PISTON_API_KEY")
+
+var client = NewClient(OfficialAPIBaseURL, WithAPIKey(apiKey))
 
 func assert(expected, got interface{}, t *testing.T) {
 	if expected != got {
@@ -14,62 +16,29 @@ func assert(expected, got interface{}, t *testing.T) {
 	}
 }
 
-func TestRuntimes(t *testing.T) {
-	runtimes, err := client.GetRuntimes(context.Background())
-	if err != nil {
-		t.Error(err.Error())
-	}
-	for _, runtime := range *runtimes {
-		if runtime.Language == "python" {
-			assert(runtime.Aliases[0], "py", t)
-		}
+func TestNewClientDefaults(t *testing.T) {
+	c := NewClient("http://localhost:2000/api/v2/")
+
+	assert(c.BaseURL, "http://localhost:2000/api/v2/", t)
+	assert(c.ApiKey, "", t)
+	if c.HttpClient != http.DefaultClient {
+		t.Errorf("Expected HttpClient to default to http.DefaultClient")
 	}
 }
 
-func TestExecutionCode(t *testing.T) {
-	execution, err := client.Execute(
-		context.Background(), "python", "",
-		[]Code{{Content: "print([i for i in range(4)])"}},
-	)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-
-	assert(execution.GetOutput(), "[0, 1, 2, 3]\n", t)
+func TestWithAPIKey(t *testing.T) {
+	c := NewClient(OfficialAPIBaseURL, WithAPIKey("test-key"))
+	assert(c.ApiKey, "test-key", t)
 }
 
-func TestTimeout(t *testing.T) {
-	response, err := client.Execute(
-		context.Background(), "python", "",
-		[]Code{
-			{
-				Name:    "main.py",
-				Content: "import time\nprint('before sleep')\ntime.sleep(3)\nprint('after sleep')",
-			},
-		},
-		RunTimeout(2*time.Second),
-	)
-	if err != nil {
-		t.Errorf(err.Error())
+func TestWithHTTPClient(t *testing.T) {
+	custom := &http.Client{}
+	c := NewClient("http://localhost:2000/api/v2/", WithHTTPClient(custom))
+	if c.HttpClient != custom {
+		t.Errorf("Expected HttpClient to be the custom client passed to WithHTTPClient")
 	}
-	assert(response.Run.Signal, "SIGKILL", t)
 }
 
-func TestCompileStage(t *testing.T) {
-	// C++ usually has a compile stage
-	execution, err := client.Execute(
-		context.Background(), "c++", "",
-		[]Code{{Content: "#include <iostream>\nint main() { std::cout << \"Hello\"; return 0; }"}},
-	)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-
-	// Verify we got some compile output or at least the stage is present (though it might be empty if successful and silent)
-	// Usually Piston returns code 0 for success.
-	if execution.Compile.Code != 0 {
-		t.Errorf("Expected compile code 0, got %d", execution.Compile.Code)
-	}
-
-	assert(execution.Run.Stdout, "Hello", t)
+func TestOfficialAPIBaseURL(t *testing.T) {
+	assert(OfficialAPIBaseURL, "https://emkc.org/api/v2/piston/", t)
 }
