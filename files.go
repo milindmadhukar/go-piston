@@ -8,12 +8,6 @@ import (
 	"unicode/utf8"
 )
 
-// GetOutput returns the run stage's stdout and stderr, interleaved in the
-// order the process produced them.
-func (resp *PistonExecution) GetOutput() string {
-	return resp.Run.Output
-}
-
 // Files reads the given paths and returns them as execution files, so callers
 // can run code from disk instead of embedding it in a string. The files are
 // returned in the order given, so the first path is the job's entry point.

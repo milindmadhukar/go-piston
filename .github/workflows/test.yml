@@ -31,16 +31,6 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      # The _examples directory is excluded from the module by its leading
-      # underscore, so `go build ./...` never sees it. Build each program
-      # explicitly so the examples cannot silently rot.
-      - name: Build examples
-        run: |
-          for dir in _examples/*/; do
-            echo "building $dir"
-            (cd "$dir" && go build -o /dev/null .)
-          done
-
       # Piston needs --privileged and cgroup v2. Upstream runs its own API this
       # way on ubuntu-latest runners, so this is a supported configuration.
       - name: Start Piston
@@ -83,6 +73,37 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{"language":"python","version":"3.10.0"}'
           curl --silent --show-error --fail http://localhost:2000/api/v2/runtimes
+
+      # Building the examples is already covered by `go build ./...`. Running
+      # them is what catches an example that compiles but is wrong. They all
+      # target http://localhost:2000/api/v2/, which is exactly what this job
+      # publishes.
+      - name: Run examples
+        run: |
+          failed=""
+          for dir in examples/*/; do
+            name=$(basename "$dir")
+
+            # Targets the whitelist-only official API, so it exits non-zero
+            # without a key. Left honest rather than weakened to exit 0.
+            if [ "$name" = "official_api_client" ]; then
+              echo "--- skipping $name (needs an official API key)"
+              continue
+            fi
+
+            echo "--- running $name"
+            # From its own directory: from_files reads main.py/test.py
+            # relative to the working directory.
+            if ! (cd "$dir" && go run .); then
+              echo "!!! $name failed"
+              failed="$failed $name"
+            fi
+          done
+
+          if [ -n "$failed" ]; then
+            echo "Examples failed:$failed"
+            exit 1
+          fi
 
       - name: Test
         env:

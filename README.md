@@ -102,7 +102,9 @@ Output:
 dlrow olleh
 ```
 
-See the [examples directory](_examples) for more, including timeouts, memory limits, multi-file execution, error handling, and configuring clients for self-hosted vs. the official API.
+See the [examples directory](examples) for more, including timeouts, memory limits, multi-file execution, error handling, and configuring clients for self-hosted vs. the official API. Each is a runnable program; CI executes every one of them against a live instance on each push.
+
+Shorter, copy-paste snippets for each API also appear as [examples on pkg.go.dev](https://pkg.go.dev/github.com/milindmadhukar/go-piston/v2#pkg-examples).
 
 ## Error handling
 

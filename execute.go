@@ -55,6 +55,12 @@ func (client *Client) Execute(ctx context.Context, language string, version stri
 	return execution, nil
 }
 
+// GetOutput returns the run stage's stdout and stderr, interleaved in the
+// order the process produced them.
+func (resp *PistonExecution) GetOutput() string {
+	return resp.Run.Output
+}
+
 // processParams applies the optional parameters to the request body in place.
 func processParams(body *RequestBody, params ...Param) {
 	p := Params{requestBody: body}

@@ -23,6 +23,8 @@ go run main.go
 ## Expected output
 
 ```
-stdout: before sleep
+stdout: 
 signal: SIGKILL
 ```
+
+Note that `stdout` is empty even though the program printed before sleeping: Python buffers stdout when it is not attached to a terminal, and `SIGKILL` gives it no chance to flush. A stage that is killed reports the signal rather than a meaningful exit code, so check `Signal` first.

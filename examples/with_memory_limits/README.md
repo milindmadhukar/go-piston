@@ -21,6 +21,8 @@ go run main.go
 ## Expected output
 
 ```
-exit code: 1
-stderr: ...MemoryError...
+exit code: 137
+stderr: /piston/packages/python/3.10.0/run: line 3:     3 Killed                  python3.10 "$@"
 ```
+
+The process is killed by the kernel rather than raising a catchable `MemoryError`, so the exit code is 137 (128 + SIGKILL) and the message comes from the runtime's wrapper script, not from Python.
