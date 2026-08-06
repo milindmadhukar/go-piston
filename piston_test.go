@@ -2,8 +2,10 @@ package gopiston
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 )
@@ -28,7 +30,42 @@ func newTestClient() *Client {
 	if target == "" {
 		target = OfficialAPIBaseURL
 	}
-	return NewClient(target, WithAPIKey(apiKey))
+
+	opts := []ClientOption{WithAPIKey(apiKey)}
+
+	// The official API rejects anything faster than one request per 200ms with
+	// a 429. Round-trip latency alone spaces these tests out from most places,
+	// but not from a CI runner sitting close to emkc, so throttle explicitly
+	// rather than let the suite pass or fail on where it runs from.
+	if isOfficialAPI(normalizeBaseURL(target)) {
+		opts = append(opts, WithHTTPClient(&http.Client{
+			Transport: &throttledTransport{minInterval: 300 * time.Millisecond},
+		}))
+	}
+
+	return NewClient(target, opts...)
+}
+
+// throttledTransport spaces the requests it sends at least minInterval apart.
+// The lock is held across the wait, so requests serialize — which is what the
+// rate limit wants, and costs nothing here because the live tests are
+// sequential anyway.
+type throttledTransport struct {
+	minInterval time.Duration
+
+	mu   sync.Mutex
+	last time.Time
+}
+
+func (transport *throttledTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	transport.mu.Lock()
+	if wait := transport.minInterval - time.Since(transport.last); wait > 0 {
+		time.Sleep(wait)
+	}
+	transport.last = time.Now()
+	transport.mu.Unlock()
+
+	return http.DefaultTransport.RoundTrip(req)
 }
 
 // testContext bounds every live request. A Piston instance consulting the
