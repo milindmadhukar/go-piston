@@ -60,6 +60,20 @@ func requireExecuteAccess(t *testing.T) {
 	}
 }
 
+// requireInteractiveAccess skips the test when the target instance does not
+// serve the interactive endpoint. The official API does not, and Connect
+// refuses to dial it at all — TestConnectGuardedOnOfficialAPI covers that
+// refusal, so there is nothing a live session here could add.
+func requireInteractiveAccess(t *testing.T) {
+	t.Helper()
+
+	if client.IsOfficialAPI() {
+		t.Skip("skipping: the official Piston API does not serve the interactive endpoint; set PISTON_BASE_URL to a self-hosted instance")
+	}
+
+	requireExecuteAccess(t)
+}
+
 // requireLanguage skips the test when the target instance has no runtime for
 // the given language, since a self-hosted instance may install only a subset.
 func requireLanguage(t *testing.T, language string) {

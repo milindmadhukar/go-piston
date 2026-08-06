@@ -16,3 +16,6 @@
 
 # Local scratch space for prototyping against the unpublished module.
 /prototype/
+
+# Local credentials for the live tests. Holds a real API key — never commit.
+.env

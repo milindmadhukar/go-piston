@@ -10,6 +10,7 @@ import (
 // A live interactive job must stream output as it is produced and accept input
 // while the process is still running.
 func TestInteractiveSession(t *testing.T) {
+	requireInteractiveAccess(t)
 	requireLanguage(t, "python")
 
 	// Echoes each line back as it arrives. flush=True matters: Python block
@@ -88,6 +89,7 @@ for line in sys.stdin:
 // A job that ends on its own must report the run stage's exit and then close
 // with io.EOF rather than an error.
 func TestInteractiveSessionCompletes(t *testing.T) {
+	requireInteractiveAccess(t)
 	requireLanguage(t, "python")
 
 	session, err := client.Connect(testContext(t), "python", "",
@@ -135,7 +137,7 @@ func TestInteractiveSessionCompletes(t *testing.T) {
 // An unknown runtime is rejected after the connection is established, so it
 // surfaces from Next rather than from Connect.
 func TestInteractiveUnknownRuntime(t *testing.T) {
-	requireExecuteAccess(t)
+	requireInteractiveAccess(t)
 
 	session, err := client.Connect(testContext(t), "not-a-real-language", "1.0.0",
 		[]File{{Content: "x"}})
@@ -169,6 +171,7 @@ func TestInteractiveUnknownRuntime(t *testing.T) {
 // that bug as the expected behavior. What matters here is that a valid signal
 // is not rejected with ErrInvalidSignal.
 func TestInteractiveSignalAccepted(t *testing.T) {
+	requireInteractiveAccess(t)
 	requireLanguage(t, "python")
 
 	session, err := client.Connect(testContext(t), "python", "",
@@ -198,6 +201,7 @@ func TestInteractiveSignalAccepted(t *testing.T) {
 
 // An unrecognized signal name ends the session with ErrInvalidSignal.
 func TestInteractiveInvalidSignal(t *testing.T) {
+	requireInteractiveAccess(t)
 	requireLanguage(t, "python")
 
 	session, err := client.Connect(testContext(t), "python", "",
