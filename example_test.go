@@ -220,3 +220,52 @@ func ExampleAPIError() {
 		fmt.Printf("status=%d message=%q\n", apiErr.StatusCode, apiErr.Message)
 	}
 }
+
+// Installing a package in the background, following its log as it is produced.
+// This is the alternative to Client.InstallPackage, which holds the request
+// open for the whole install.
+func ExampleClient_InstallPackageAsync() {
+	client := gopiston.NewClient("http://localhost:2000/api/v2/")
+	ctx := context.Background()
+
+	// The operations endpoints are a later addition, so ask before using them.
+	supported, err := client.SupportsOperations(ctx)
+	if err != nil || !supported {
+		// Fall back to the synchronous Client.InstallPackage, which every
+		// instance has.
+		return
+	}
+
+	operation, err := client.InstallPackageAsync(ctx, "gcc", "15.3.0")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	session, err := client.ConnectOperation(ctx, operation.ID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer session.Close()
+
+	for {
+		event, err := session.Next(ctx)
+		if errors.Is(err, io.EOF) {
+			// The instance closes the socket once the operation settles.
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		switch event.Type {
+		case gopiston.OperationEventLog:
+			// Not necessarily one line: the backlog replayed on connect
+			// arrives as a single event.
+			fmt.Print(event.Data)
+		case gopiston.OperationEventState:
+			if event.State == gopiston.OperationFailed {
+				log.Fatalf("install failed: %s", event.Error)
+			}
+		}
+	}
+}

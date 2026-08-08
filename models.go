@@ -1,5 +1,7 @@
 package gopiston
 
+import "time"
+
 // Runtime is a language runtime installed on a Piston instance.
 type Runtime struct {
 	// Language is the runtime's language name, as accepted by Execute.
@@ -197,4 +199,85 @@ type packageRequestBody struct {
 type PackageInstallation struct {
 	Language string `json:"language"`
 	Version  string `json:"version"`
+}
+
+// OperationKind distinguishes the two things a package operation can do.
+type OperationKind string
+
+// The kinds of package operation.
+const (
+	OperationInstall   OperationKind = "install"
+	OperationUninstall OperationKind = "uninstall"
+)
+
+// OperationState is where a package operation has got to.
+type OperationState string
+
+// The states a package operation passes through. Running is the only
+// non-terminal one.
+const (
+	OperationRunning   OperationState = "running"
+	OperationSucceeded OperationState = "succeeded"
+	OperationFailed    OperationState = "failed"
+)
+
+// operationRequestBody is the payload sent to start a package operation.
+type operationRequestBody struct {
+	Kind     OperationKind `json:"kind"`
+	Language string        `json:"language"`
+	Version  string        `json:"version"`
+}
+
+// Operation is an install or uninstall running in the background on the
+// instance. See Client.StartOperation.
+//
+// An Operation is a record of work in flight rather than durable state: the
+// instance keeps only the most recent completed ones and forgets all of them
+// when it restarts. What survives is the effect — whether the package is
+// installed — which GetPackages reports.
+type Operation struct {
+	// ID identifies the operation for GetOperation, GetOperationLog and
+	// ConnectOperation.
+	ID string `json:"id"`
+
+	// Kind is whether this operation installs or uninstalls.
+	Kind OperationKind `json:"kind"`
+
+	// Language and Version are the resolved package, so Version is a concrete
+	// version even when a selector such as "5.x" was requested.
+	Language string `json:"language"`
+	Version  string `json:"version"`
+
+	// State is the operation's progress. Compare against OperationRunning,
+	// OperationSucceeded and OperationFailed, or use Done.
+	State OperationState `json:"state"`
+
+	// Started is when the operation began, in Unix milliseconds. StartedAt
+	// returns it as a time.Time.
+	Started int64 `json:"started"`
+
+	// Finished is when the operation settled, in Unix milliseconds. It is nil
+	// while the operation is still running.
+	Finished *int64 `json:"finished,omitempty"`
+
+	// Error describes the failure when State is OperationFailed, and is empty
+	// otherwise.
+	Error string `json:"error,omitempty"`
+}
+
+// Done reports whether the operation has settled, successfully or not.
+func (operation Operation) Done() bool { return operation.State != OperationRunning }
+
+// StartedAt returns when the operation began.
+func (operation Operation) StartedAt() time.Time {
+	return time.UnixMilli(operation.Started)
+}
+
+// FinishedAt returns when the operation settled, or the zero time if it is
+// still running.
+func (operation Operation) FinishedAt() time.Time {
+	if operation.Finished == nil {
+		return time.Time{}
+	}
+	return time.UnixMilli(*operation.Finished)
 }

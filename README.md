@@ -1,6 +1,8 @@
 # go-piston
 
-A Go client library for the [Piston](https://github.com/engineer-man/piston) code execution engine, covering the `runtimes`, `execute`, and `packages` endpoints.
+A Go client library for the [Piston](https://github.com/engineer-man/piston) code execution engine, covering the `runtimes`, `execute`, `packages` and `operations` endpoints, plus the interactive `connect` WebSocket.
+
+Piston instances vary in what they serve — `operations` is a later addition that older ones do not have. Nothing here assumes it: `SupportsOperations` reports what an instance can do, and everything else works against any v2 instance.
 
 ## Piston API access
 
@@ -121,7 +123,14 @@ if errors.As(err, &apiErr) {
 }
 ```
 
-The full set is `ErrBadRequest`, `ErrUnauthorized`, `ErrAPIKeyRequired`, `ErrNotFound`, `ErrRateLimited`, `ErrServer`, `ErrLanguageNotFound` and `ErrUnsupportedByOfficialAPI`. `ErrAPIKeyRequired` implies `ErrUnauthorized`, so check it first; it is derived from the client's own configuration rather than the server's wording.
+The full set is `ErrBadRequest`, `ErrUnauthorized`, `ErrAPIKeyRequired`, `ErrNotFound`, `ErrConflict`, `ErrRateLimited`, `ErrServer`, `ErrLanguageNotFound`, `ErrUnsupportedByOfficialAPI` and `ErrOperationsUnsupported`. `ErrAPIKeyRequired` implies `ErrUnauthorized`, so check it first; it is derived from the client's own configuration rather than the server's wording. `ErrOperationsUnsupported` likewise implies `ErrNotFound`.
+
+Not every failure carries a JSON body, so do not rely on `APIError.Message` being set:
+
+- `Execute` answers an internal failure with a **500 and an empty body**. `Message` is empty and `Error()` falls back to the status text; the raw body is always on `Body`.
+- A request body that is not valid JSON is rejected with `{"stack": ...}` rather than Piston's usual `{"message": ...}`. The first line is used as `Message`.
+
+Self-hosted Piston does **not** rate limit, so `ErrRateLimited` is only seen from the official API or a proxy. Instead, work beyond `PISTON_MAX_CONCURRENT_JOBS` queues on the instance until a slot frees — so give requests a generous context deadline rather than a short client timeout.
 
 ## Interactive execution
 
@@ -168,7 +177,18 @@ Two practical notes:
 - `Event.Data` is a **chunk, not a line** — one write may arrive split across events, and one event may carry several lines.
 - Most runtimes **block-buffer stdout** when it is not a terminal, so a program that never flushes delivers nothing until it exits. Flush on the other side (`print(..., flush=True)` in Python).
 
-`SendSignal` is implemented and protocol-correct, but Piston does not currently act on it: its router emits an event named `signal` while the job handler listens for one named `kill`, so the signal is validated, accepted and then dropped. Verified against a live instance — a process sent `SIGKILL` runs to completion and exits 0. It will start working once that is fixed upstream.
+### Stopping a job
+
+`Close` is the portable way to stop a job early. On instances that support it, closing the session kills the running stage and releases the sandbox and concurrency slot immediately; older ones let the job run on until its own wall-time limit.
+
+`SendSignal` delivers a signal by name to the sandbox supervisor. Two accepted cases deliberately do nothing on the instance's side, and neither is an error — a job still running afterwards has not misbehaved:
+
+- `SIGSTOP`, `SIGTSTP`, `SIGTTIN` and `SIGTTOU` are never delivered, because a stopped job would hold its concurrency slot forever.
+- The real-time signal names (`SIGRTMIN+n`, `SIGRTMAX-n`) are accepted and have no effect.
+
+An unrecognised name is a real error and ends the session with `ErrInvalidSignal`.
+
+> **Older instances drop signals entirely.** Before this was fixed, Piston's router emitted an event named `signal` while the job handler listened for one named `kill`, so a signal was validated, accepted and then discarded — a process sent `SIGKILL` ran to completion and exited 0. If you must stop a job on an arbitrary instance, close the session.
 
 ## Package management
 
@@ -180,6 +200,42 @@ installation, err := client.InstallPackage(ctx, "python", "3.10.0")
 ```
 
 Listing packages makes the instance consult the upstream package index and can be slow; installing one downloads and unpacks a runtime and can take minutes. Give both a generous context timeout.
+
+### Installing in the background
+
+`InstallPackage` holds the request open until the runtime is installed. That is workable for a package that is a tarball to fetch, and not for one compiled from source, which can take an hour. The `operations` endpoints start the same work and return immediately with an id to follow:
+
+```go
+operation, err := client.InstallPackageAsync(ctx, "gcc", "15.3.0")
+
+session, err := client.ConnectOperation(ctx, operation.ID)
+defer session.Close()
+
+for {
+	event, err := session.Next(ctx)
+	if errors.Is(err, io.EOF) {
+		break // the instance closes the socket once the operation settles
+	}
+	if err != nil {
+		return err
+	}
+	if event.Type == piston.OperationEventLog {
+		fmt.Print(event.Data)
+	}
+}
+```
+
+Everything logged before the connection opened is replayed first, so attaching late still shows the whole run. `GetOperation` and `GetOperationLog` poll for the same information instead, and both work while the operation is still running.
+
+> **Not on every instance.** These endpoints are a later addition. Probe once with `SupportsOperations` and keep the answer; an instance without them answers `ErrOperationsUnsupported`, and `InstallPackage` still works there.
+
+Three things worth knowing:
+
+- Only one operation per package may be in flight; a second fails with `ErrConflict`.
+- An operation is a record of work in flight, not durable state. The instance keeps only the most recent completed ones and forgets all of them on restart, after which `GetOperation` reports `ErrNotFound` — which is indistinguishable from an id that never existed. The durable answer to "is it installed" is `GetPackages`.
+- `Operation.Finished` is a `*int64` because the field is **absent** while running, not null. `FinishedAt` returns the zero time in that case.
+
+`ServerVersion` reports what an instance calls itself (`"3.1.1"`). It is a diagnostic only: the endpoint it reads lives at the instance root rather than under the API base URL, so it fails behind a proxy that exposes only `/api/v2`. Never gate a feature on it — use `SupportsOperations`, which asks the endpoint in question directly.
 
 ## Testing
 
@@ -200,7 +256,9 @@ Without `PISTON_BASE_URL` they target the official API, which needs `PISTON_API_
 
 Package install/uninstall tests mutate the target instance, so they are skipped unless `PISTON_TEST_PACKAGE_MANAGEMENT=true`. Choose the package with `PISTON_TEST_PACKAGE` (for example `bash=5.2.0`); avoid large runtimes, which can take many minutes to install.
 
-CI runs the full suite against a Piston instance started in Docker, so it passes without any secret. If a `PISTON_API_KEY` repository secret is set, a second job additionally runs the suite against the official API; without the secret that job is skipped rather than failed.
+Tests for the `operations` endpoints probe the instance first and skip when it does not serve them, so the suite is meaningful against any instance.
+
+CI runs the full suite against a Piston instance started in Docker, so it passes without any secret. It does so **twice**, as a matrix over upstream Piston and the fork that adds the `operations` endpoints: upstream is the compatibility floor, where everything using those endpoints must skip rather than fail, and the fork is where that code is actually exercised. If a `PISTON_API_KEY` repository secret is set, a further job runs the suite against the official API; without the secret that job is skipped rather than failed.
 
 ## Migrating from v1
 

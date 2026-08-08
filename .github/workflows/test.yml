@@ -6,8 +6,23 @@ on:
 
 jobs:
   test:
-    name: Test against a self-hosted Piston instance
+    name: Test against ${{ matrix.name }}
     runs-on: ubuntu-latest
+
+    # This client targets two server lineages and must keep working on both.
+    # Upstream is the compatibility floor: it has no /operations endpoints, so
+    # everything that uses them must skip rather than fail there. The fork adds
+    # them, and is where that code is actually exercised. Running the same
+    # suite against both is what stops one lineage's behaviour being baked in
+    # as an assumption.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: upstream Piston
+            image: ghcr.io/engineer-man/piston
+          - name: the Piston fork
+            image: ghcr.io/milindmadhukar/piston
 
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +59,7 @@ jobs:
             --tmpfs /tmp:exec \
             -v "${{ runner.temp }}/piston-data:/piston" \
             --name piston \
-            ghcr.io/engineer-man/piston
+            "${{ matrix.image }}"
 
       - name: Wait for Piston
         run: |
@@ -115,6 +130,10 @@ jobs:
           # locally instead of listing every package, which makes the instance
           # fetch the upstream index.
           PISTON_TEST_PACKAGE: bash=5.2.0
+        # The operations tests probe the instance and skip when it does not
+        # serve those endpoints, so this same command is correct for both
+        # images: a skip on upstream, a run on the fork. A failure there means
+        # the probe is wrong, not that the image is old.
         run: go test ./... -v
 
       - name: Piston logs

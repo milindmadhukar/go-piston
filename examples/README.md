@@ -15,6 +15,7 @@ Each directory below is a standalone, runnable `go run main.go` program demonstr
 | [get_languages](get_languages) | List just the supported language names |
 | [get_latest_version](get_latest_version) | Resolve the latest installed version of a language |
 | [list_packages](list_packages) | List available and installed packages |
+| [operations](operations) | Install a package in the background and stream its log |
 | [self_hosted_client](self_hosted_client) | Configure a client for a self-hosted instance, including a custom `*http.Client` |
 | [official_api_client](official_api_client) | Configure a client for the official, key-gated Piston API |
 | [interactive](interactive) | Stream output and write to stdin of a live process over WebSocket |
