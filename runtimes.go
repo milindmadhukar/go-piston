@@ -65,7 +65,7 @@ func (client *Client) GetLatestVersion(ctx context.Context, language string) (st
 		// The API makes no ordering guarantee and instances routinely expose
 		// several versions of one language, so compare rather than taking the
 		// first match.
-		if latest == "" || compareVersions(runtime.Version, latest) > 0 {
+		if latest == "" || CompareVersions(runtime.Version, latest) > 0 {
 			latest = runtime.Version
 		}
 	}
@@ -77,11 +77,15 @@ func (client *Client) GetLatestVersion(ctx context.Context, language string) (st
 	return latest, nil
 }
 
-// compareVersions orders two dotted version strings numerically, returning a
+// CompareVersions orders two dotted version strings numerically, returning a
 // negative number if a sorts before b, zero if they are equal, and a positive
 // number otherwise. Components that are not numeric fall back to a string
 // comparison, which keeps the ordering total for unusual version strings.
-func compareVersions(a, b string) int {
+//
+// It is what GetLatestVersion uses to pick a winner, and is exported so that a
+// caller sorting the versions of one language for display agrees with it.
+// Piston versions are plain dotted numbers in practice, not full semver.
+func CompareVersions(a, b string) int {
 	aParts := strings.Split(a, ".")
 	bParts := strings.Split(b, ".")
 

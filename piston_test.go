@@ -37,7 +37,7 @@ func newTestClient() *Client {
 	// a 429. Round-trip latency alone spaces these tests out from most places,
 	// but not from a CI runner sitting close to emkc, so throttle explicitly
 	// rather than let the suite pass or fail on where it runs from.
-	if isOfficialAPI(normalizeBaseURL(target)) {
+	if IsOfficialHost(target) {
 		opts = append(opts, WithHTTPClient(&http.Client{
 			Transport: &throttledTransport{minInterval: 300 * time.Millisecond},
 		}))

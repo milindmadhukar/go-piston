@@ -52,8 +52,8 @@ func TestNormalizeBaseURL(t *testing.T) {
 		{"http://localhost:2000/api/v2///", "http://localhost:2000/api/v2/"},
 		{"  https://emkc.org/api/v2/piston  ", "https://emkc.org/api/v2/piston/"},
 	} {
-		if got := normalizeBaseURL(tc.in); got != tc.want {
-			t.Errorf("normalizeBaseURL(%q) = %q, want %q", tc.in, got, tc.want)
+		if got := NormalizeBaseURL(tc.in); got != tc.want {
+			t.Errorf("NormalizeBaseURL(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
 }
@@ -127,7 +127,7 @@ func TestCompareVersions(t *testing.T) {
 		{"1.0", "1.0.0", "="},
 		{"0.36.1", "0.4.0", ">"},
 	} {
-		got := compareVersions(tc.a, tc.b)
+		got := CompareVersions(tc.a, tc.b)
 		var sign string
 		switch {
 		case got < 0:
@@ -138,7 +138,7 @@ func TestCompareVersions(t *testing.T) {
 			sign = "="
 		}
 		if sign != tc.want {
-			t.Errorf("compareVersions(%q, %q) = %d (%s), want %s", tc.a, tc.b, got, sign, tc.want)
+			t.Errorf("CompareVersions(%q, %q) = %d (%s), want %s", tc.a, tc.b, got, sign, tc.want)
 		}
 	}
 }

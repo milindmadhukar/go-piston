@@ -163,19 +163,29 @@ func TestInteractiveUnknownRuntime(t *testing.T) {
 	}
 }
 
-// The instance validates and accepts a signal packet.
+// A signal must be accepted, and on an instance that delivers them it must
+// actually end the job.
 //
-// This deliberately does not assert that the process dies: Piston's router
-// emits an event named "signal" while its job handler listens for one named
-// "kill", so signals are currently dropped. Asserting termination would encode
-// that bug as the expected behavior. What matters here is that a valid signal
-// is not rejected with ErrInvalidSignal.
+// Proving delivery needs care, because a job killed by its own run timeout
+// also reports SIGKILL and the interactive exit frame carries no status to
+// tell the two apart. So the evidence is the program's output rather than the
+// clock: it prints once, is signalled, and prints again a second later. Seeing
+// that second line means the signal was dropped and the timeout is what
+// eventually killed it — which is a skip, not a failure, since instances that
+// drop signals exist and this client still supports them.
 func TestInteractiveSignalAccepted(t *testing.T) {
 	requireInteractiveAccess(t)
 	requireLanguage(t, "python")
 
+	source := `import time
+print('up', flush=True)
+time.sleep(1)
+print('survived', flush=True)
+time.sleep(30)
+`
+
 	session, err := client.Connect(testContext(t), "python", "",
-		[]File{{Content: "import time\nprint('up', flush=True)\ntime.sleep(30)"}})
+		[]File{{Content: source}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,6 +206,27 @@ func TestInteractiveSignalAccepted(t *testing.T) {
 
 	if err := session.SendSignal(ctx, "SIGKILL"); err != nil {
 		t.Fatalf("Expected a valid signal to be accepted, got %v", err)
+	}
+
+	for {
+		event, err := session.Next(ctx)
+		if errors.Is(err, io.EOF) {
+			t.Fatal("the session ended without reporting how the run stage exited")
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if event.Type == EventStdout && strings.Contains(event.Data, "survived") {
+			t.Skip("this instance does not deliver signals: the process kept running after SIGKILL")
+		}
+
+		if event.Type == EventExit && event.Stage == "run" {
+			if event.Signal != "SIGKILL" {
+				t.Errorf("Expected the run stage to die on SIGKILL, got code=%v signal=%q", event.Code, event.Signal)
+			}
+			return
+		}
 	}
 }
 

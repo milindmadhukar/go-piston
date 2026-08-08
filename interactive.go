@@ -10,17 +10,20 @@ import (
 	"github.com/coder/websocket"
 )
 
-// WebSocket close codes used by Piston's interactive endpoint. 4999 is absent
-// from the published API reference but is the normal completion path, so it
-// must not be treated as a failure.
+// WebSocket close codes used by Piston's interactive endpoint. CloseJobCompleted
+// is absent from the published API reference but is the normal completion path,
+// so it must not be treated as a failure — Next reports it as io.EOF.
+//
+// Session translates all of these into errors, so using them directly is only
+// necessary when speaking the protocol by hand, as a test double does.
 const (
-	closeJobCompleted          = 4999
-	closeAlreadyInitialized    = 4000
-	closeInitializationTimeout = 4001
-	closeNotifiedError         = 4002
-	closeNotInitialized        = 4003
-	closeStdinOnly             = 4004
-	closeInvalidSignal         = 4005
+	CloseJobCompleted          = 4999
+	CloseAlreadyInitialized    = 4000
+	CloseInitializationTimeout = 4001
+	CloseNotifiedError         = 4002
+	CloseNotInitialized        = 4003
+	CloseStdinOnly             = 4004
+	CloseInvalidSignal         = 4005
 )
 
 // Session is a live interactive execution job. It streams the process's output
@@ -180,19 +183,19 @@ func (session *Session) Next(ctx context.Context) (Event, error) {
 // completed job, a close-code sentinel, or the underlying error.
 func (session *Session) readError(err error) error {
 	switch websocket.CloseStatus(err) {
-	case closeJobCompleted:
+	case CloseJobCompleted:
 		return io.EOF
-	case closeAlreadyInitialized:
+	case CloseAlreadyInitialized:
 		return fmt.Errorf("piston: %w", ErrAlreadyInitialized)
-	case closeInitializationTimeout:
+	case CloseInitializationTimeout:
 		return fmt.Errorf("piston: %w", ErrInitializationTimeout)
-	case closeNotInitialized:
+	case CloseNotInitialized:
 		return fmt.Errorf("piston: %w", ErrNotInitialized)
-	case closeStdinOnly:
+	case CloseStdinOnly:
 		return fmt.Errorf("piston: %w", ErrStdinOnly)
-	case closeInvalidSignal:
+	case CloseInvalidSignal:
 		return fmt.Errorf("piston: %w", ErrInvalidSignal)
-	case closeNotifiedError:
+	case CloseNotifiedError:
 		if session.lastError != "" {
 			return fmt.Errorf("piston: %s", session.lastError)
 		}
@@ -222,11 +225,21 @@ func (session *Session) SendStdin(ctx context.Context, data string) error {
 // the job exists ends the session with ErrNotInitialized instead of being
 // validated.
 //
-// Note that Piston does not currently act on this. The instance validates and
-// accepts the signal, then drops it: its router emits an event named "signal"
-// while the job handler listens for one named "kill". The request is correct
-// per the protocol, so this will start working once that is fixed upstream,
-// but today a job cannot be terminated early this way.
+// Two accepted cases do nothing, by design on the instance's side, and neither
+// is reported as an error — a job that keeps running after them has not
+// misbehaved:
+//
+//   - SIGSTOP, SIGTSTP, SIGTTIN and SIGTTOU are never delivered. A stopped job
+//     would hold its concurrency slot forever.
+//   - The real-time signal names, SIGRTMIN+n and SIGRTMAX-n, are accepted but
+//     have no effect.
+//
+// Delivery is to the sandbox supervisor rather than to the program itself.
+// Older Piston instances, including everything before the fix in
+// engineer-man/piston's successor, validated the signal and then dropped it —
+// their router emitted an event named "signal" while the job handler listened
+// for one named "kill" — so against those a job cannot be terminated this way.
+// Closing the session is the portable way to stop a job.
 func (session *Session) SendSignal(ctx context.Context, signal string) error {
 	return session.send(ctx, wsMessage{Type: "signal", Signal: signal})
 }
@@ -244,6 +257,11 @@ func (session *Session) send(ctx context.Context, msg any) error {
 
 // Close ends the session. It is safe to call after the job has already
 // finished, so it can always be deferred.
+//
+// Closing a session whose job is still running kills the running stage and
+// releases the instance's sandbox and concurrency slot immediately, which
+// makes this the portable way to stop a job early. Older instances instead
+// left the job running until it hit its own wall-time limit.
 func (session *Session) Close() error {
 	return session.conn.Close(websocket.StatusNormalClosure, "")
 }

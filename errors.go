@@ -30,8 +30,17 @@ var (
 	// ErrNotFound indicates the endpoint or resource does not exist (HTTP 404).
 	ErrNotFound = errors.New("not found")
 
+	// ErrConflict indicates the request collided with work already in flight
+	// (HTTP 409). StartOperation returns this when the same package already has
+	// an install or uninstall running.
+	ErrConflict = errors.New("conflict")
+
 	// ErrRateLimited indicates the instance is rate limiting the client
 	// (HTTP 429).
+	//
+	// Self-hosted Piston does not rate limit: over-capacity requests queue
+	// against PISTON_MAX_CONCURRENT_JOBS instead of being rejected. This is
+	// only seen from the official API or from a proxy in front of an instance.
 	ErrRateLimited = errors.New("rate limited")
 
 	// ErrServer indicates the instance failed to handle the request (HTTP 5xx).
@@ -44,6 +53,15 @@ var (
 	// ErrLanguageNotFound is returned when the instance has no runtime
 	// installed for the requested language.
 	ErrLanguageNotFound = errors.New("language not found")
+
+	// ErrOperationsUnsupported is returned by the Operations methods when the
+	// instance does not serve /operations at all. Those endpoints are an
+	// addition; an older Piston answers 404 for the whole namespace, which is
+	// otherwise indistinguishable from an unknown operation id.
+	//
+	// Use SupportsOperations to test for the endpoints before relying on them.
+	// An error matching this also matches ErrNotFound.
+	ErrOperationsUnsupported = errors.New("instance does not support the operations API")
 )
 
 // Errors ending an interactive Session. Each corresponds to a WebSocket close
@@ -138,6 +156,8 @@ func (e *APIError) Is(target error) bool {
 		return e.StatusCode == http.StatusBadRequest
 	case ErrNotFound:
 		return e.StatusCode == http.StatusNotFound
+	case ErrConflict:
+		return e.StatusCode == http.StatusConflict
 	case ErrRateLimited:
 		return e.StatusCode == http.StatusTooManyRequests
 	case ErrServer:
@@ -154,13 +174,26 @@ func isUnauthorizedStatus(code int) bool {
 // payload. It returns an empty string for any body that is not a JSON object
 // carrying a string message, including HTML from a reverse proxy, an empty
 // body, or an explicit JSON null.
+//
+// One endpoint does not use that shape: a request body that is not valid JSON
+// is rejected with {"stack": "<interpreter stack trace>"} instead. Only its
+// first line is taken, which is the error itself rather than the frames below
+// it; Body still holds the whole thing.
 func parseAPIErrorMessage(body []byte) string {
 	// *string rather than string so an explicit null is treated as absent.
 	var payload struct {
 		Message *string `json:"message"`
+		Stack   *string `json:"stack"`
 	}
-	if err := json.Unmarshal(body, &payload); err != nil || payload.Message == nil {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		return ""
 	}
-	return strings.TrimSpace(*payload.Message)
+	if payload.Message != nil {
+		return strings.TrimSpace(*payload.Message)
+	}
+	if payload.Stack != nil {
+		first, _, _ := strings.Cut(strings.TrimSpace(*payload.Stack), "\n")
+		return strings.TrimSpace(first)
+	}
+	return ""
 }

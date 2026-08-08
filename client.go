@@ -60,7 +60,7 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 func NewClient(baseURL string, opts ...ClientOption) *Client {
 	client := &Client{
 		httpClient: http.DefaultClient,
-		baseURL:    normalizeBaseURL(baseURL),
+		baseURL:    NormalizeBaseURL(baseURL),
 	}
 
 	for _, opt := range opts {
@@ -69,7 +69,7 @@ func NewClient(baseURL string, opts ...ClientOption) *Client {
 
 	// Computed after the options run so that a future base-URL option could
 	// not leave the flag stale.
-	client.officialAPI = isOfficialAPI(client.baseURL)
+	client.officialAPI = IsOfficialHost(client.baseURL)
 
 	return client
 }
@@ -82,11 +82,15 @@ func (client *Client) BaseURL() string { return client.baseURL }
 // unavailable on the official API; see InstallPackage.
 func (client *Client) IsOfficialAPI() bool { return client.officialAPI }
 
-// normalizeBaseURL trims surrounding whitespace and collapses any run of
+// NormalizeBaseURL trims surrounding whitespace and collapses any run of
 // trailing slashes into exactly one, so endpoint paths can be appended
 // directly. Without this, a base URL of "http://host:2000/api/v2" would
 // silently produce "http://host:2000/api/v2runtimes".
-func normalizeBaseURL(baseURL string) string {
+//
+// NewClient applies this to its argument. It is exported so that callers
+// keying a cache or comparing two user-supplied addresses can agree with the
+// client on what counts as the same instance.
+func NormalizeBaseURL(baseURL string) string {
 	return strings.TrimRight(strings.TrimSpace(baseURL), "/") + "/"
 }
 
@@ -94,14 +98,20 @@ func normalizeBaseURL(baseURL string) string {
 // "runtimes".
 func (client *Client) endpoint(path string) string { return client.baseURL + path }
 
-// isOfficialAPI reports whether a normalized base URL points at the officially
-// hosted Piston API. Detection is host-based so that any emkc.org endpoint is
+// IsOfficialHost reports whether a base URL points at the officially hosted
+// Piston API. Detection is host-based so that any emkc.org endpoint is
 // recognized, not only the exact OfficialAPIBaseURL string.
-func isOfficialAPI(normalizedBaseURL string) bool {
-	if strings.EqualFold(normalizedBaseURL, OfficialAPIBaseURL) {
+//
+// NewClient uses this to decide what to refuse before making a request. It is
+// exported so a caller can answer the same question about an address a user
+// has typed but that has not been turned into a Client yet — to hide UI for
+// features the official API does not have, say.
+func IsOfficialHost(baseURL string) bool {
+	normalized := NormalizeBaseURL(baseURL)
+	if strings.EqualFold(normalized, OfficialAPIBaseURL) {
 		return true
 	}
-	parsed, err := url.Parse(normalizedBaseURL)
+	parsed, err := url.Parse(normalized)
 	if err != nil {
 		return false
 	}

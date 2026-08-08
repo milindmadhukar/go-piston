@@ -55,7 +55,7 @@ func TestConnectSendsInit(t *testing.T) {
 
 	client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
 		got <- readMessage(ctx, conn)
-		conn.Close(closeJobCompleted, "Job Completed")
+		conn.Close(CloseJobCompleted, "Job Completed")
 	})
 
 	session, err := client.Connect(context.Background(), "python", "3.10.0",
@@ -94,7 +94,7 @@ func TestConnectSendsLatestSelector(t *testing.T) {
 
 	client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
 		got <- readMessage(ctx, conn)
-		conn.Close(closeJobCompleted, "Job Completed")
+		conn.Close(CloseJobCompleted, "Job Completed")
 	})
 
 	session, err := client.Connect(context.Background(), "python", "", []File{{Content: "print(1)"}})
@@ -116,7 +116,7 @@ func TestSessionEventSequence(t *testing.T) {
 		writeEvent(ctx, conn, map[string]any{"type": "data", "stream": "stdout", "data": "out"})
 		writeEvent(ctx, conn, map[string]any{"type": "data", "stream": "stderr", "data": "err"})
 		writeEvent(ctx, conn, map[string]any{"type": "exit", "stage": "run", "code": 0, "signal": nil})
-		conn.Close(closeJobCompleted, "Job Completed")
+		conn.Close(CloseJobCompleted, "Job Completed")
 	})
 
 	session, err := client.Connect(context.Background(), "python", "", []File{{Content: "x"}})
@@ -162,7 +162,7 @@ func TestSessionExitBySignal(t *testing.T) {
 	client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
 		readMessage(ctx, conn)
 		writeEvent(ctx, conn, map[string]any{"type": "exit", "stage": "run", "code": nil, "signal": "SIGKILL"})
-		conn.Close(closeJobCompleted, "Job Completed")
+		conn.Close(CloseJobCompleted, "Job Completed")
 	})
 
 	session, err := client.Connect(context.Background(), "bash", "", []File{{Content: "sleep 10"}})
@@ -185,11 +185,11 @@ func TestSessionCloseCodes(t *testing.T) {
 		code websocket.StatusCode
 		want error
 	}{
-		{"already initialized", closeAlreadyInitialized, ErrAlreadyInitialized},
-		{"initialization timeout", closeInitializationTimeout, ErrInitializationTimeout},
-		{"not initialized", closeNotInitialized, ErrNotInitialized},
-		{"stdin only", closeStdinOnly, ErrStdinOnly},
-		{"invalid signal", closeInvalidSignal, ErrInvalidSignal},
+		{"already initialized", CloseAlreadyInitialized, ErrAlreadyInitialized},
+		{"initialization timeout", CloseInitializationTimeout, ErrInitializationTimeout},
+		{"not initialized", CloseNotInitialized, ErrNotInitialized},
+		{"stdin only", CloseStdinOnly, ErrStdinOnly},
+		{"invalid signal", CloseInvalidSignal, ErrInvalidSignal},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
@@ -216,7 +216,7 @@ func TestSessionNotifiedErrorCarriesMessage(t *testing.T) {
 	client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
 		readMessage(ctx, conn)
 		writeEvent(ctx, conn, map[string]any{"type": "error", "message": "python-9.9.9 runtime is unknown"})
-		conn.Close(closeNotifiedError, "Notified Error")
+		conn.Close(CloseNotifiedError, "Notified Error")
 	})
 
 	session, err := client.Connect(context.Background(), "python", "9.9.9", []File{{Content: "x"}})
@@ -247,7 +247,7 @@ func TestSessionSendStdinAndSignal(t *testing.T) {
 		readMessage(ctx, conn) // init
 		got <- readMessage(ctx, conn)
 		got <- readMessage(ctx, conn)
-		conn.Close(closeJobCompleted, "Job Completed")
+		conn.Close(CloseJobCompleted, "Job Completed")
 	})
 
 	session, err := client.Connect(context.Background(), "python", "", []File{{Content: "x"}})
@@ -309,7 +309,7 @@ func TestSessionAcceptsLargeMessages(t *testing.T) {
 	client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
 		readMessage(ctx, conn)
 		writeEvent(ctx, conn, map[string]any{"type": "data", "stream": "stdout", "data": string(large)})
-		conn.Close(closeJobCompleted, "Job Completed")
+		conn.Close(CloseJobCompleted, "Job Completed")
 	})
 
 	session, err := client.Connect(context.Background(), "python", "", []File{{Content: "x"}})

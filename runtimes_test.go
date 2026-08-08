@@ -64,7 +64,7 @@ func TestGetLatestVersion(t *testing.T) {
 		if runtime.Language != "python" {
 			continue
 		}
-		if compareVersions(runtime.Version, version) > 0 {
+		if CompareVersions(runtime.Version, version) > 0 {
 			t.Errorf("GetLatestVersion returned %s, but %s is installed", version, runtime.Version)
 		}
 	}
