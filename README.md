@@ -124,9 +124,12 @@ execution, err := client.Execute(ctx, "bun-js", "", files)
 fmt.Println(execution.Runtime) // "bun"
 ```
 
-`Execution.Runtime` and `Event.Runtime` report which engine answered. Both are empty when
-the instance did not say — a language with one engine, or an instance older than the
-field, which includes the official API.
+`Runtime` on a listed runtime is reported by every instance, the official API included, so
+telling the engines apart and picking one works everywhere.
+
+Being told which engine *ran* a job is newer: `Execution.Runtime` and `Event.Runtime` are
+empty unless the instance says, which a language with one engine and an instance older
+than the field both do. Treat empty as "not stated", never as "unambiguous".
 
 Shorter, copy-paste snippets for each API also appear as [examples on pkg.go.dev](https://pkg.go.dev/github.com/milindmadhukar/go-piston/v2#pkg-examples).
 
