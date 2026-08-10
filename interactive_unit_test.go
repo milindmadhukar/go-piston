@@ -156,6 +156,46 @@ func TestSessionEventSequence(t *testing.T) {
 	}
 }
 
+// The runtime frame is the only place an interactive session learns which
+// engine it got, and the field is absent whenever the instance has nothing to
+// disambiguate — or predates the field entirely.
+func TestSessionRuntimeEventCarriesEngine(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		frame map[string]any
+		want  string
+	}{
+		{
+			name:  "engine named",
+			frame: map[string]any{"type": "runtime", "language": "javascript", "version": "1.3.14", "runtime": "bun"},
+			want:  "bun",
+		},
+		{
+			name:  "engine omitted",
+			frame: map[string]any{"type": "runtime", "language": "bash", "version": "5.2.0"},
+			want:  "",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := fakeInstance(t, func(ctx context.Context, conn *websocket.Conn) {
+				readMessage(ctx, conn)
+				writeEvent(ctx, conn, tc.frame)
+				conn.Close(CloseJobCompleted, "Job Completed")
+			})
+
+			session, err := client.Connect(context.Background(), "x", "", []File{{Content: "x"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer session.Close()
+
+			event := mustNext(t, session, context.Background())
+			assert(event.Type, EventRuntime, t)
+			assert(event.Runtime, tc.want, t)
+		})
+	}
+}
+
 // A stage ended by a signal reports a null code, which must stay
 // distinguishable from a genuine exit code of zero.
 func TestSessionExitBySignal(t *testing.T) {
