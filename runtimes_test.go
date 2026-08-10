@@ -80,8 +80,12 @@ func TestGetLatestVersionInvalidLanguage(t *testing.T) {
 // An engine's own alias is the only stable way to ask for it: a bare language
 // name resolves by version number, and versions do not compare across engines.
 //
-// Skipped unless the instance actually installs two engines for one language,
-// which is the normal state of both the official API and a fresh instance.
+// The check that works everywhere is the version that comes back — asking for
+// deno must answer with deno's version, not with node's higher one — because
+// naming the engine in an execute response is newer than the /runtimes field
+// that distinguishes them, so it is asserted only where it is reported.
+//
+// Skipped unless the instance really has two engines for one language.
 func TestExecuteSelectsAnEngineByAlias(t *testing.T) {
 	requireExecuteAccess(t)
 
@@ -90,17 +94,17 @@ func TestExecuteSelectsAnEngineByAlias(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// language -> engine -> the aliases that engine claims for it.
-	shared := map[string]map[string][]string{}
+	// language -> engine -> that engine's runtimes for it.
+	shared := map[string]map[string][]Runtime{}
 	for _, runtime := range runtimes {
 		if runtime.Runtime == "" {
 			continue
 		}
 		if shared[runtime.Language] == nil {
-			shared[runtime.Language] = map[string][]string{}
+			shared[runtime.Language] = map[string][]Runtime{}
 		}
 		shared[runtime.Language][runtime.Runtime] = append(
-			shared[runtime.Language][runtime.Runtime], runtime.Aliases...)
+			shared[runtime.Language][runtime.Runtime], runtime)
 	}
 
 	tested := 0
@@ -109,8 +113,8 @@ func TestExecuteSelectsAnEngineByAlias(t *testing.T) {
 			continue
 		}
 
-		for engine, aliases := range engines {
-			alias := exclusiveAlias(aliases, engine, engines)
+		for engine, installed := range engines {
+			alias, latest := exclusiveAlias(installed, engine, engines)
 			if alias == "" {
 				t.Errorf("%s on %s has no alias of its own, so it cannot be asked for", language, engine)
 				continue
@@ -123,7 +127,10 @@ func TestExecuteSelectsAnEngineByAlias(t *testing.T) {
 				t.Fatal(err)
 			}
 			assert(execution.Language, language, t)
-			assert(execution.Runtime, engine, t)
+			assert(execution.Version, latest, t)
+			if execution.Runtime != "" {
+				assert(execution.Runtime, engine, t)
+			}
 			tested++
 		}
 	}
@@ -133,20 +140,36 @@ func TestExecuteSelectsAnEngineByAlias(t *testing.T) {
 	}
 }
 
-// exclusiveAlias returns an alias of engine that no other engine of the same
-// language also claims, or "" when there is none.
-func exclusiveAlias(aliases []string, engine string, engines map[string][]string) string {
-	for _, alias := range aliases {
-		taken := false
-		for other, theirs := range engines {
-			if other != engine && slices.Contains(theirs, alias) {
-				taken = true
-				break
+// exclusiveAlias returns an alias belonging to engine alone, along with the
+// highest version installed for it — what asking by that alias should resolve
+// to. The alias is empty when every name this engine answers to is also
+// claimed by another engine of the same language.
+func exclusiveAlias(installed []Runtime, engine string, engines map[string][]Runtime) (string, string) {
+	others := map[string]bool{}
+	for name, runtimes := range engines {
+		if name == engine {
+			continue
+		}
+		for _, runtime := range runtimes {
+			for _, alias := range runtime.Aliases {
+				others[alias] = true
 			}
 		}
-		if !taken {
-			return alias
+	}
+
+	latest := ""
+	for _, runtime := range installed {
+		if latest == "" || CompareVersions(runtime.Version, latest) > 0 {
+			latest = runtime.Version
 		}
 	}
-	return ""
+
+	for _, runtime := range installed {
+		for _, alias := range runtime.Aliases {
+			if !others[alias] {
+				return alias, latest
+			}
+		}
+	}
+	return "", latest
 }
