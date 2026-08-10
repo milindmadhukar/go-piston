@@ -101,6 +101,33 @@ dlrow olleh
 
 See the [examples directory](examples) for more, including timeouts, memory limits, multi-file execution, error handling, and configuring clients for self-hosted vs. the official API. Each is a runnable program; CI executes every one of them against a live instance on each push.
 
+### Choosing an engine
+
+One language can be served by several engines — `javascript` by node, deno and bun. They
+are separate entries in `GetRuntimes`, told apart by `Runtime`:
+
+```go
+for _, runtime := range runtimes {
+	fmt.Println(runtime.Language, runtime.Version, runtime.Runtime, runtime.Aliases)
+	// javascript 20.11.1 node [node-javascript node-js javascript js]
+	// javascript 1.3.14  bun  [bun-js]
+}
+```
+
+An instance resolves a request by taking the **highest version** that matches the name or
+one of its aliases, and versions are each engine's own — node 20 outranks bun 1.3 for no
+better reason than being a larger number. So a bare language name is not a way to ask for
+an engine. Pass an alias that belongs to one:
+
+```go
+execution, err := client.Execute(ctx, "bun-js", "", files)
+fmt.Println(execution.Runtime) // "bun"
+```
+
+`Execution.Runtime` and `Event.Runtime` report which engine answered. Both are empty when
+the instance did not say — a language with one engine, or an instance older than the
+field, which includes the official API.
+
 Shorter, copy-paste snippets for each API also appear as [examples on pkg.go.dev](https://pkg.go.dev/github.com/milindmadhukar/go-piston/v2#pkg-examples).
 
 ## Error handling

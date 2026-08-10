@@ -51,6 +51,11 @@ func (client *Client) GetLanguages(ctx context.Context) ([]string, error) {
 //
 // Execute resolves an empty version server-side, so calling this first is only
 // necessary when the version itself is of interest.
+//
+// It compares across engines, exactly as the instance does. Asking for the
+// latest "javascript" on an instance running both node 20 and bun 1.3 answers
+// 20.11.1 — the version of whichever engine numbers highest, not a judgement
+// about which is newer. Pass an engine's own alias ("bun-js") to scope it.
 func (client *Client) GetLatestVersion(ctx context.Context, language string) (string, error) {
 	runtimes, err := client.GetRuntimes(ctx)
 	if err != nil {

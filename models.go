@@ -16,6 +16,12 @@ type Runtime struct {
 	// Runtime names the engine running the language, and is set only when the
 	// language has more than one possible engine (for example "node" or "deno"
 	// for JavaScript).
+	//
+	// Language and Version alone do not identify an engine: an instance picks
+	// the highest version satisfying the request, and versions are the engine's
+	// own, so node 20 outranks bun 1.3 for no better reason. To run on a
+	// particular engine, pass one of that entry's Aliases as the language —
+	// every engine sharing a language has at least one alias of its own.
 	Runtime string `json:"runtime,omitempty"`
 }
 
@@ -60,6 +66,14 @@ type Execution struct {
 
 	// Version is the version of the runtime that ran the job.
 	Version string `json:"version"`
+
+	// Runtime is the engine that ran the job — "node", "deno" or "bun" for
+	// JavaScript — and is set only for a language served by more than one.
+	//
+	// Empty means the instance did not say, which covers both a language with a
+	// single engine and any instance predating the field, including every
+	// upstream one. Absence is not a signal that the language is unambiguous.
+	Runtime string `json:"runtime,omitempty"`
 
 	// Run holds the results of the run stage.
 	Run Stage `json:"run"`
@@ -154,6 +168,11 @@ type Event struct {
 	// Version is the version of the runtime that ran the job. EventRuntime
 	// only.
 	Version string
+
+	// Runtime is the engine that ran the job, on the same terms as
+	// Execution.Runtime: set only for a language with more than one, empty
+	// whenever the instance did not say. EventRuntime only.
+	Runtime string
 
 	// Stage is "compile" or "run". EventStage and EventExit only.
 	Stage string

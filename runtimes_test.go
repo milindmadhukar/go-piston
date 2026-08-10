@@ -76,3 +76,77 @@ func TestGetLatestVersionInvalidLanguage(t *testing.T) {
 		t.Errorf("Expected ErrLanguageNotFound, got %v", err)
 	}
 }
+
+// An engine's own alias is the only stable way to ask for it: a bare language
+// name resolves by version number, and versions do not compare across engines.
+//
+// Skipped unless the instance actually installs two engines for one language,
+// which is the normal state of both the official API and a fresh instance.
+func TestExecuteSelectsAnEngineByAlias(t *testing.T) {
+	requireExecuteAccess(t)
+
+	runtimes, err := client.GetRuntimes(testContext(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// language -> engine -> the aliases that engine claims for it.
+	shared := map[string]map[string][]string{}
+	for _, runtime := range runtimes {
+		if runtime.Runtime == "" {
+			continue
+		}
+		if shared[runtime.Language] == nil {
+			shared[runtime.Language] = map[string][]string{}
+		}
+		shared[runtime.Language][runtime.Runtime] = append(
+			shared[runtime.Language][runtime.Runtime], runtime.Aliases...)
+	}
+
+	tested := 0
+	for language, engines := range shared {
+		if len(engines) < 2 {
+			continue
+		}
+
+		for engine, aliases := range engines {
+			alias := exclusiveAlias(aliases, engine, engines)
+			if alias == "" {
+				t.Errorf("%s on %s has no alias of its own, so it cannot be asked for", language, engine)
+				continue
+			}
+
+			// An empty program: the assertion is about which engine answered,
+			// not about what it did, and every engine accepts an empty file.
+			execution, err := client.Execute(testContext(t), alias, "*", []File{{Content: ""}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert(execution.Language, language, t)
+			assert(execution.Runtime, engine, t)
+			tested++
+		}
+	}
+
+	if tested == 0 {
+		t.Skip("skipping: no language on this instance is served by more than one engine")
+	}
+}
+
+// exclusiveAlias returns an alias of engine that no other engine of the same
+// language also claims, or "" when there is none.
+func exclusiveAlias(aliases []string, engine string, engines map[string][]string) string {
+	for _, alias := range aliases {
+		taken := false
+		for other, theirs := range engines {
+			if other != engine && slices.Contains(theirs, alias) {
+				taken = true
+				break
+			}
+		}
+		if !taken {
+			return alias
+		}
+	}
+	return ""
+}

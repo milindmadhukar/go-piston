@@ -53,6 +53,7 @@ type wsMessage struct {
 	// Server to client only.
 	Language string `json:"language,omitempty"`
 	Version  string `json:"version,omitempty"`
+	Runtime  string `json:"runtime,omitempty"`
 	Stage    string `json:"stage,omitempty"`
 	Code     *int   `json:"code,omitempty"`
 	Message  string `json:"message,omitempty"`
@@ -145,6 +146,7 @@ func (session *Session) Next(ctx context.Context) (Event, error) {
 	event := Event{
 		Language: msg.Language,
 		Version:  msg.Version,
+		Runtime:  msg.Runtime,
 		Stage:    msg.Stage,
 		Data:     msg.Data,
 		Code:     msg.Code,
